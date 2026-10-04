@@ -1,0 +1,26 @@
+name: Tests du serveur
+
+on:
+  push:
+    branches: [main]
+    paths: ['viratech/**', '.github/workflows/tests.yml']
+  pull_request:
+    paths: ['viratech/**']
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: viratech
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_sqlite, sqlite3, intl, fileinfo
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist
+      - run: cp .env.example .env && php artisan key:generate
+      - run: php artisan test

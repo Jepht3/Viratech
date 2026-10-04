@@ -1,0 +1,2 @@
+Première version de Viratech : échangez PayPal, Equity et mobile money.
+Suivi de commande en étapes réelles, avec notifications.

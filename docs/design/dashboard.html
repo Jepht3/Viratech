@@ -1,0 +1,64 @@
+﻿<!doctype html><html lang="fr"><meta charset="utf-8"><link rel="stylesheet" href="base.css">
+<style>
+body{width:1440px;height:1020px;overflow:hidden;display:flex}
+aside{width:250px;padding:28px 20px;display:flex;flex-direction:column;gap:6px;border-right:1px solid var(--line)}
+aside a{padding:12px 14px;border-radius:14px;font-weight:600;font-size:15px;color:var(--mut);display:flex;gap:12px;align-items:center}
+aside a.on{background:var(--ink);color:#fff}
+main{flex:1;padding:28px 36px;display:grid;grid-template-columns:repeat(12,1fr);grid-auto-rows:min-content;gap:18px;align-content:start}
+.top{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center}
+.hero{grid-column:span 7;background:linear-gradient(135deg,#0B6148,#0E7C5A 60%,#14A38B);color:#fff;border:0;position:relative;overflow:hidden;min-height:250px}
+.hero:after{content:"";position:absolute;right:-60px;top:-60px;width:260px;height:260px;border-radius:50%;background:rgba(255,255,255,.08)}
+.hero .big{font-size:58px;font-weight:700;margin:6px 0 14px}
+.sub{display:flex;gap:28px}.sub div b{display:block;font-size:20px;margin-top:2px}
+.hero .btn{background:#fff;color:var(--pri)}.hero .btn.g{background:rgba(255,255,255,.16);color:#fff}
+.rate{grid-column:span 5}
+.swap{grid-column:span 5}
+.ord{grid-column:span 7}
+.list>div{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.list>div:first-child{border-top:0}
+.tl{display:flex;gap:0;margin-top:14px}.tl div{flex:1;text-align:center;font-size:11.5px;color:var(--mut);position:relative}
+.tl div:before{content:"";display:block;height:6px;border-radius:9px;background:var(--line);margin-bottom:8px}.tl .d:before{background:var(--pri)}.tl .c:before{background:var(--amb)}
+.tl div+div:before{margin-left:4px}
+.fld{border:1px solid var(--line);border-radius:18px;padding:14px 16px;background:#FBFAF7}
+.fld .v{font-size:28px;font-weight:700}
+.chip{background:#fff;border:1px solid var(--line);padding:6px 10px 6px 6px;border-radius:99px;display:flex;gap:8px;align-items:center;font-weight:600;font-size:13px}
+.chip .dot{width:24px;height:24px;border-radius:99px;font-size:10px}
+.brk{margin:14px 0;font-size:13.5px}.brk div{display:flex;justify-content:space-between;padding:4px 0}
+.spark{height:58px;width:100%}
+</style>
+<aside>
+<div class="logo"><i>V</i>Viratech</div><div style="height:22px"></div>
+<a class="on">◉ Accueil</a><a>⇄ Échanger</a><a>▤ Historique</a><a>◎ Retraits</a><a>✓ Vérification</a><a>? Aide</a>
+<div style="flex:1"></div>
+<div class="card" style="padding:16px;background:var(--amb2);border-color:#F3DFA8"><div class="b sm">Niveau 1 · Vérifié</div><div class="xs mut" style="margin:4px 0 10px">Passez au niveau 2 pour 3 000 $ / mois</div><div style="height:6px;background:#fff;border-radius:9px"><div style="width:42%;height:6px;background:var(--amb);border-radius:9px"></div></div></div>
+</aside>
+<main>
+<div class="top"><div><div class="mut sm">Samedi 3 octobre</div><h1 style="font-size:30px;letter-spacing:-.03em">Bonjour Jephté 👋</h1></div>
+<div class="row"><span class="pill ok">● Opérateur en ligne · réponse ≈ 12 min</span><div class="dot" style="background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:99px;width:42px;height:42px;position:relative;font-size:17px">🔔<span style="position:absolute;top:-5px;right:-5px;background:#DC2626;color:#fff;border-radius:99px;font-size:10px;padding:1px 6px;font-weight:700">3</span></div><div class="dot" style="background:var(--ink);border-radius:99px;width:42px;height:42px">JT</div></div></div>
+
+<div class="card hero"><div class="sm" style="opacity:.8">Solde disponible</div>
+<div class="big num">1 248,60 <span style="font-size:26px;opacity:.8">USD</span></div>
+<div class="sub"><div><span class="xs" style="opacity:.75">EN ATTENTE</span><b class="num">320,00 $</b></div><div><span class="xs" style="opacity:.75">BLOQUÉ</span><b class="num">100,00 $</b></div><div><span class="xs" style="opacity:.75">REÇU CE MOIS</span><b class="num">2 860,00 $</b></div></div>
+<div class="row" style="margin-top:26px"><button class="btn">⇄ Nouvel échange</button><button class="btn g">↧ Retirer</button><button class="btn g">+ Déposer</button></div></div>
+
+<div class="card rate"><div class="row sp"><div><div class="mut sm">Frais PayPal vers Equity · dès 150 $</div><div class="num" style="font-size:34px;font-weight:700">10 %</div></div><span class="pill info">500 $+ : 7 % · 2 001 $+ : 6 %</span></div>
+<div class="list sm" style="margin-top:12px"><div><div class="dot eq">EQ</div><div style="flex:1"><b>PayPal vers Equity</b><div class="xs mut">Délai 30 min à 4 h · min 150 $</div></div><b class="num">10 à 6 %</b></div><div><div class="dot mp">MP</div><div style="flex:1"><b>PayPal vers mobile money</b><div class="xs mut">Délai 5 à 30 min · min 150 $</div></div><b class="num">+ 2 $</b></div><div><div class="dot pp">PP</div><div style="flex:1"><b>Mobile money vers PayPal</b><div class="xs mut">Délai jusqu'à 1 jour · min 100 $</div></div><b class="num">10 %</b></div><div><div class="dot us">₮</div><div style="flex:1"><b>Crypto</b></div><span class="pill wait xs">Bientôt</span></div></div></div>
+
+<div class="card swap"><div class="b" style="margin-bottom:12px">Échange rapide</div>
+<div class="fld"><div class="row sp"><span class="xs mut">Vous envoyez</span><span class="chip"><span class="dot pp">PP</span>PayPal ▾</span></div><div class="v num">200,00 USD</div></div>
+<div class="brk"><div><span class="mut">Dépôt</span><span class="num">Facture PayPal · exacte</span></div><div><span class="mut">Frais Viratech (10 %)</span><span class="num">− 20,00 $</span></div></div>
+<div class="fld" style="background:var(--pri2);border-color:#BFE3D2"><div class="row sp"><span class="xs mut">Vous recevez</span><span class="chip"><span class="dot eq">EQ</span>Equity ▾</span></div><div class="v num" style="color:var(--pri)">180,00 USD</div></div>
+<button class="btn" style="width:100%;margin-top:14px">Continuer · frais garantis 20 min</button></div>
+
+<div class="card ord"><div class="row sp"><div class="b">Commande en cours</div><span class="pill wait">⏳ Vérification en cours</span></div>
+<div class="row" style="margin:14px 0 4px"><div class="dot pp">PP</div><span class="mut">→</span><div class="dot mp">MP</div><div style="flex:1"><b>PayPal → M-Pesa · #MB-20418</b><div class="xs mut">Reçu 220,00 $ · versement 196,00 $ sur +243 81 ••• 4521</div></div><b class="num">196,00 $</b></div>
+<div class="tl"><div class="d">Créée<br>14:28</div><div class="d">Paiement PayPal reçu<br>14:31</div><div class="c">Contrôle sécurité<br>depuis 6 min</div><div>Versement en cours</div><div>Versement effectué</div><div>Terminé</div></div>
+<div class="list" style="margin-top:14px"><div style="padding-top:14px"><div class="dot eq">EQ</div><div style="flex:1"><b class="sm">PayPal → Equity · #MB-20395</b><div class="xs mut">Hier 16:42 · preuve de versement disponible</div></div><span class="pill ok">Payé</span><b class="num sm">180,00 $</b></div>
+<div><div class="dot ar">AM</div><div style="flex:1"><b class="sm">Airtel Money → PayPal · #MB-20371</b><div class="xs mut">29 sept. · 14:10</div></div><span class="pill ok">Payé</span><b class="num sm">90,00 $</b></div></div></div>
+</main></html>
+
+
+
+
+
+

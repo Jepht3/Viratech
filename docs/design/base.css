@@ -1,0 +1,20 @@
+:root{--bg:#F6F5F1;--card:#fff;--ink:#0F1B17;--mut:#6B7770;--line:#E6E4DC;--pri:#0E7C5A;--pri2:#E3F3EC;--amb:#F2B544;--amb2:#FDF3DC;--red:#DC2626;--blue:#1D4ED8}
+*{box-sizing:border-box;margin:0}body{font-family:"Segoe UI",Inter,system-ui,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+.num{font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.card{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:22px}
+.mut{color:var(--mut)}.sm{font-size:13px}.xs{font-size:11.5px}.b{font-weight:600}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:99px;font-size:12px;font-weight:600}
+.ok{background:#DDF4E4;color:#166534}.wait{background:var(--amb2);color:#8A5A00}.info{background:#E4ECFF;color:#1E40AF}.bad{background:#FDE4E4;color:#991B1B}
+.dot{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;color:#fff;font-weight:700;font-size:13px;flex:none}
+.mp{background:#2E9B3E}.ar{background:#E4002B}.eq{background:#7A1F3D}.pp{background:#1D4ED8}.us{background:#14A38B}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:99px;padding:13px 22px;font-weight:600;font-size:15px;background:var(--pri);color:#fff;border:0}
+.btn.sec{background:var(--ink)}.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.row{display:flex;align-items:center;gap:12px}.sp{justify-content:space-between}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px}.logo i{width:32px;height:32px;border-radius:11px;background:linear-gradient(135deg,#0E7C5A,#14A38B);display:grid;place-items:center;color:#fff;font-style:normal;font-size:17px}
+
+/* Vrais logos des sociétés (favicons / logos officiels) */
+.dot.pp,.dot.eq,.dot.mp,.dot.ar{color:transparent;font-size:0;background-color:#fff;background-repeat:no-repeat;background-position:center;border:1px solid #E6E4DC}
+.dot.pp{background-image:url(logos/paypal.png);background-size:68%}
+.dot.eq{background-image:url(logos/equity.png);background-size:84%}
+.dot.mp{background-image:url(logos/mpesa.png);background-size:90%}
+.dot.ar{background-image:url(logos/airtel.png);background-size:66%}

@@ -1,0 +1,47 @@
+﻿<!doctype html><html lang="fr"><meta charset="utf-8"><link rel="stylesheet" href="base.css">
+<style>
+:root{--bg:#0E1512;--card:#17211C;--ink:#EAF1ED;--mut:#8FA096;--line:#26342D;--pri:#2BC48A;--pri2:#13392B}
+body{width:1440px;height:980px;overflow:hidden;display:flex}
+.card{border-radius:20px}.ok{background:#12351F;color:#6EE7A0}.wait{background:#3A2E0E;color:#F6C75B}.info{background:#14264F;color:#9DB8FF}.bad{background:#3F1717;color:#FCA5A5}
+.btn{background:var(--pri);color:#04150E}.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}.btn.red{background:#3F1717;color:#FCA5A5}
+aside{width:230px;padding:26px 18px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+aside a{padding:11px 14px;border-radius:12px;font-weight:600;font-size:14px;color:var(--mut);display:flex;justify-content:space-between}aside a.on{background:#1F2D26;color:#fff}
+main{flex:1;padding:26px 32px;display:grid;grid-template-columns:repeat(12,1fr);gap:16px;align-content:start}
+.top{grid-column:1/-1}.kpi{grid-column:span 3;padding:18px}.kpi .v{font-size:30px;font-weight:700;margin-top:6px}
+.q{grid-column:span 7}.det{grid-column:span 5}.bal{grid-column:span 7}.rt{grid-column:span 5}
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:10px}th{text-align:left;color:var(--mut);font-weight:600;font-size:12px;padding:8px 6px}td{padding:12px 6px;border-top:1px solid var(--line)}tr.sel td{background:#1B2822}
+.kv{display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line);font-size:13.5px}
+.proof{height:120px;border-radius:14px;background:repeating-linear-gradient(45deg,#1F2D26,#1F2D26 10px,#233229 10px,#233229 20px);display:grid;place-items:center;color:var(--mut);font-size:12px;margin:12px 0}
+.bar{height:8px;border-radius:9px;background:var(--line);overflow:hidden}.bar i{display:block;height:100%;background:var(--pri)}
+</style>
+<aside><div class="logo"><i>V</i>Viratech <span class="pill info xs" style="margin-left:4px">Ops</span></div><div style="height:20px"></div>
+<a class="on">File de validation <span class="pill wait xs">7</span></a><a>Ordres</a><a>Clients & KYC <span class="pill info xs">3</span></a><a>Soldes par canal</a><a>Frais & marges</a><a>Litiges <span class="pill bad xs">1</span></a><a>Rapports</a><a>Journal d'audit</a></aside>
+<main><div class="top row sp"><div><div class="mut sm">Console opérateur</div><h1 style="font-size:26px;letter-spacing:-.03em">File de validation</h1></div><div class="row"><span class="pill ok">● API PayPal connectée · dernier paiement 09:10</span><button class="btn ghost">Clôture du jour</button></div></div>
+<div class="card kpi"><div class="mut sm">Volume du jour</div><div class="v num">4 820 $</div><div class="xs" style="color:#6EE7A0">▲ 12 % vs hier</div></div>
+<div class="card kpi"><div class="mut sm">Marge du jour</div><div class="v num">198,40 $</div><div class="xs mut">Marge moyenne 4,1 %</div></div>
+<div class="card kpi"><div class="mut sm">Délai moyen de paiement</div><div class="v num">18 min</div><div class="xs" style="color:#6EE7A0">SLA 30 min · respecté</div></div>
+<div class="card kpi"><div class="mut sm">Ordres en attente</div><div class="v num">7</div><div class="xs" style="color:#F6C75B">2 proches du SLA</div></div>
+<div class="card q"><div class="b">À traiter</div><table><tr><th>Ordre</th><th>Corridor</th><th>Client</th><th>Montant</th><th>Statut</th><th>SLA</th></tr>
+<tr class="sel"><td>#20418</td><td>PayPal → M-Pesa</td><td>J. Tshibola · N1</td><td class="num">220 $</td><td><span class="pill wait">Preuve reçue</span></td><td style="color:#F6C75B">12 min</td></tr>
+<tr><td>#20417</td><td>PayPal → Equity</td><td>A. Mukendi · N2</td><td class="num">540 $</td><td><span class="pill info">Facture payée</span></td><td>24 min</td></tr>
+<tr><td>#20416</td><td>PayPal → Airtel</td><td>R. Kabeya · N0</td><td class="num">150 $</td><td><span class="pill wait">Preuve reçue</span></td><td>27 min</td></tr>
+<tr><td>#20414</td><td>PayPal → Equity</td><td>S. Ilunga · N1</td><td class="num">310 $</td><td><span class="pill ok">Fonds confirmés</span></td><td>À payer</td></tr>
+<tr><td>#20412</td><td>M-Pesa → PayPal</td><td>M. Banza · N2</td><td class="num">100 $</td><td><span class="pill bad">Nom ≠ KYC</span></td><td>—</td></tr></table></div>
+<div class="card det"><div class="row sp"><b>Ordre #20418</b><span class="pill wait">Preuve reçue</span></div><div class="proof">▣ Capture PayPal · ID 7TX48920…</div>
+<div class="kv"><span class="mut">Reçu</span><b class="num">220,00 $</b></div><div class="kv"><span class="mut">Frais 10 % + 2 $</span><b class="num">− 24,00 $</b></div><div class="kv"><span class="mut">À verser</span><b class="num">196,00 $ · M-Pesa</b></div><div class="kv"><span class="mut">Contrôles</span><span class="pill ok xs">Nom ✓</span></div>
+<div class="row" style="margin-top:12px"><button class="btn" style="flex:1">✓ Fonds confirmés</button><button class="btn red">Rejeter</button></div></div>
+<div class="card bal"><div class="b">Soldes réels vs dus aux clients</div>
+<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:14px">
+<div><div class="dot pp" style="margin-bottom:8px">PP</div><div class="num b">2 140 $</div><div class="xs mut">dû 1 960 $</div><div class="bar" style="margin-top:8px"><i style="width:91%"></i></div></div>
+<div><div class="dot eq" style="margin-bottom:8px">EQ</div><div class="num b">3 880 $</div><div class="xs mut">dû 950 $</div><div class="bar" style="margin-top:8px"><i style="width:24%"></i></div></div>
+<div><div class="dot mp" style="margin-bottom:8px">MP</div><div class="num b">640 $</div><div class="xs mut">dû 520 $</div><div class="bar" style="margin-top:8px"><i style="width:81%;background:#F6C75B"></i></div></div>
+<div><div class="dot ar" style="margin-bottom:8px">AM</div><div class="num b">210 $</div><div class="xs mut">dû 240 $</div><div class="bar" style="margin-top:8px"><i style="width:100%;background:#F87171"></i></div></div>
+<div><div class="dot" style="margin-bottom:8px;background:#F26B1D">OM</div><div class="num b">1 520 $</div><div class="xs mut">dû 540 $</div><div class="bar" style="margin-top:8px"><i style="width:36%"></i></div></div></div>
+<div class="xs" style="margin-top:12px;background:#3F1717;color:#FCA5A5;padding:8px 12px;border-radius:10px">⚠ Airtel Money : liquidité insuffisante pour les engagements (210 $ pour 240 $ dus)</div></div>
+<div class="card rt"><div class="b">Barème de frais</div>
+<div class="kv" style="border:0;margin-top:6px"><span>PayPal → Equity (min 150 $)</span><b class="num">10 % · 7 % · 6 %</b></div><div class="kv"><span>PayPal → mobile money</span><b class="num">idem + 2 $</b></div><div class="kv"><span>Mobile money → PayPal (min 100 $)</span><b class="num">10 %</b></div><div class="kv"><span>Crypto</span><b class="num">Coming soon</b></div><button class="btn ghost" style="width:100%;margin-top:12px;padding:10px">Modifier le barème</button></div>
+</main></html>
+
+
+
+
