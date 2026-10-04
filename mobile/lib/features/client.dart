@@ -30,6 +30,7 @@ class DashboardScreen extends StatelessWidget {
         return ListView(padding: kPagePadding, children: [
           PageTitle('Bonjour $first 👋', subtitle: todayFr()),
           GridView.count(
+            padding: EdgeInsets.zero,
             crossAxisCount: 2,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),

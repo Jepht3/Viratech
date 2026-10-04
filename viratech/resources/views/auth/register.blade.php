@@ -1,7 +1,7 @@
 <!doctype html>
-<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Créer un compte · Viratech</title><link rel="stylesheet" href="/css/viratech.css"></head>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Créer un compte · Viratech</title><link rel="icon" href="/favicon.png"><link rel="stylesheet" href="/css/viratech.css"></head>
 <body><div class="auth">
-    <div class="logo" style="justify-content:center"><i>V</i>Viratech</div>
+    <div class="logo" style="justify-content:center"><img src="/img/logo.png" alt="Viratech" height="46"></div>
     <div class="card">
         <h1 style="font-size:24px">Créer un compte</h1>
         <form method="post" action="/inscription">@csrf

@@ -114,7 +114,6 @@ class _AppShellState extends State<AppShell> {
       refreshBadge: _badge,
       child: Scaffold(
         key: _scaffold,
-        extendBody: true,
         drawer: _drawer(u),
         appBar: AppBar(
           automaticallyImplyLeading: false,
@@ -123,13 +122,7 @@ class _AppShellState extends State<AppShell> {
           title: Row(children: [
             _circle(Icons.menu_rounded, () => _scaffold.currentState?.openDrawer()),
             const Spacer(),
-            Container(
-              width: 28,
-              height: 28,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(borderRadius: BorderRadius.circular(9), gradient: const LinearGradient(colors: [VT.teal, Color(0xFF14A38B)])),
-              child: const Text('V', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
-            ),
+            Image.asset('assets/brand/mark.png', height: 30),
             const SizedBox(width: 8),
             Text(AppConfig.isAdmin ? 'Viratech Admin' : 'Viratech', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
             const Spacer(),
@@ -149,20 +142,22 @@ class _AppShellState extends State<AppShell> {
           ]),
         ),
         body: KeyedSubtree(key: ValueKey('$index-$rev'), child: items[index].page()),
-        bottomNavigationBar: SafeArea(
-          child: Container(
-            margin: const EdgeInsets.fromLTRB(14, 0, 14, 12),
-            height: 66,
-            decoration: BoxDecoration(color: VT.navy, borderRadius: BorderRadius.circular(99), boxShadow: [BoxShadow(color: VT.navy.withValues(alpha: 0.4), blurRadius: 22, offset: const Offset(0, 10))]),
-            child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-              for (final i in bottom) _tab(i, i == notifIndex ? unread : 0),
-            ]),
+        bottomNavigationBar: Material(
+          color: VT.navy,
+          elevation: 12,
+          child: SafeArea(
+            top: false,
+            child: SizedBox(
+              height: 64,
+              child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+                for (final i in bottom) _tab(i, i == notifIndex ? unread : 0),
+              ]),
+            ),
           ),
         ),
       ),
     );
   }
-
   Widget _circle(IconData icon, VoidCallback onTap) => Material(
         color: Colors.white,
         shape: const CircleBorder(),

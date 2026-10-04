@@ -59,11 +59,11 @@ class _LoginScreenState extends State<LoginScreen> {
               padding: const EdgeInsets.all(22),
               child: Column(children: [
                 Container(
-                  width: 64,
-                  height: 64,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), gradient: const LinearGradient(colors: [VT.amber, Color(0xFFE89B2C)])),
-                  child: const Text('V', style: TextStyle(color: VT.navy, fontSize: 32, fontWeight: FontWeight.w900)),
+                  width: 84,
+                  height: 84,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(26), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 24, offset: const Offset(0, 10))]),
+                  child: Image.asset('assets/brand/mark.png', fit: BoxFit.contain),
                 ),
                 const SizedBox(height: 14),
                 Text(admin ? 'Viratech Admin' : 'Viratech', style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w800, letterSpacing: -0.5)),

@@ -22,6 +22,7 @@ class QueueScreen extends StatelessWidget {
         return ListView(padding: kPagePadding, children: [
           const PageTitle('File de validation', subtitle: 'Console opérateur'),
           GridView.count(
+            padding: EdgeInsets.zero,
             crossAxisCount: 2,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),

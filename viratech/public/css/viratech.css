@@ -118,7 +118,7 @@ tr.hover:hover td{background:var(--soft)}
   .scrim{display:block;position:fixed;inset:0;background:rgba(15,18,40,.5);z-index:55;opacity:0;pointer-events:none;transition:opacity .25s}
   .menu-open .scrim{opacity:1;pointer-events:auto}
   .menu-open{overflow:hidden}
-  .main{padding:74px 14px 104px}
+  .main{padding:74px 14px 84px}
   .top{margin-bottom:16px}.top .bell{display:none}
   h1{font-size:22px}
   .g2,.g3,.g7{grid-template-columns:1fr}
@@ -134,7 +134,7 @@ tr.hover:hover td{background:var(--soft)}
   .btn{padding:13px 20px}
   .obs{padding:10px 12px;gap:12px}
   .net .v{font-size:26px}
-  .tabbar{display:flex;position:fixed;left:12px;right:12px;bottom:12px;height:64px;border-radius:99px;background:var(--navy);z-index:30;justify-content:space-around;align-items:center;box-shadow:0 14px 30px -12px rgba(10,14,40,.7)}
+  .tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;height:calc(62px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);border-radius:0;background:var(--navy);z-index:30;justify-content:space-around;align-items:center;box-shadow:0 -6px 18px -10px rgba(10,14,40,.5)}
   .tabbar a{display:flex;flex-direction:column;align-items:center;gap:1px;color:#aeb4d1;font-size:10.5px;font-weight:500;padding:6px 14px;border-radius:99px;position:relative}
   .tabbar a b{font-size:19px;line-height:1;font-weight:400}
   .tabbar a.on{background:var(--amber);color:#2b2208;font-weight:700}

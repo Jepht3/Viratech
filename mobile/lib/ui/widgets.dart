@@ -430,4 +430,4 @@ class PageTitle extends StatelessWidget {
       );
 }
 
-const kPagePadding = EdgeInsets.fromLTRB(16, 4, 16, 110);
+const kPagePadding = EdgeInsets.fromLTRB(16, 4, 16, 28);

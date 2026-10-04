@@ -5,12 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Viratech · Reçois en dollars, retire en local</title>
     <meta name="description" content="Retirez vos gains PayPal vers Equity, M-Pesa ou Airtel Money, sans stress. Frais clairs, suivi en temps réel.">
+    <link rel="icon" href="/favicon.png">
     <link rel="stylesheet" href="/css/landing.css">
 </head>
 <body>
 <div class="frame">
     <header class="nav">
-        <a class="brand" href="/"><i>V</i>Viratech</a>
+        <a class="brand" href="/"><img src="/img/logo.png" alt="Viratech" height="38"></a>
         <nav class="links"><a href="#suivi">Suivi en temps réel</a><a href="#frais">Frais</a><a href="#canaux">Canaux</a></nav>
         <a class="pillbtn ghost" href="/connexion">Connexion</a>
         <a class="pillbtn" href="/inscription" style="background:#0B5470">Créer un compte</a>

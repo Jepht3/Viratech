@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield('title', 'Viratech') · Viratech</title>
+    <link rel="icon" href="/favicon.png">
     <link rel="stylesheet" href="/css/viratech.css">
 </head>
 @php
@@ -14,7 +15,7 @@
 <body>
 <header class="appbar">
     <button class="burger" type="button" aria-label="Ouvrir le menu" data-menu>☰</button>
-    <div class="ttl"><i>V</i>Viratech</div>
+    <div class="ttl"><img src="/img/logo-mark.png" alt="" height="30">Viratech</div>
     <a class="bell" href="/notifications" title="Notifications">🔔@if($unread)<span>{{ $unread }}</span>@endif</a>
 </header>
 <div class="scrim" data-menu-close></div>
