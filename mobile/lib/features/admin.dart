@@ -132,7 +132,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
 class ClientsScreen extends StatelessWidget {
   const ClientsScreen({super.key});
 
-  static const levels = {0: 'N0 · 500 \$/mois', 1: 'N1 · 500 \$/mois', 2: 'N2 · 3 000 \$/mois', 3: 'N3 · sur mesure'};
+  static const levels = {0: 'N0 · email non vérifié', 1: 'N1 · 150 \$/mois', 2: 'N2 · identité vérifiée · 3 000 \$/mois', 3: 'N3 · sur mesure'};
 
   @override
   Widget build(BuildContext context) {

@@ -82,7 +82,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     TextField(controller: _email, keyboardType: TextInputType.emailAddress, autocorrect: false, decoration: const InputDecoration(labelText: 'Email')),
                     const SizedBox(height: 12),
                     if (register) ...[
-                      TextField(controller: _phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Téléphone (WhatsApp)', hintText: '+243 ...')),
+                      TextField(controller: _phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Téléphone (facultatif)', hintText: '+243 ...')),
                       const SizedBox(height: 12),
                     ],
                     TextField(

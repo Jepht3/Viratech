@@ -39,7 +39,7 @@ class Session extends ChangeNotifier {
   }
 
   Future<void> register(String name, String email, String phone, String password) async {
-    final r = await Api.i.post('/auth/register', data: {'name': name, 'email': email, 'phone': phone, 'password': password, 'device': 'android'});
+    final r = await Api.i.post('/auth/register', data: {'name': name, 'email': email, if (phone.isNotEmpty) 'phone': phone, 'password': password, 'device': 'android'});
     await _accept(r);
   }
 
