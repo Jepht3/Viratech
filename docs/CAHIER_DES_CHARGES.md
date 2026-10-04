@@ -516,3 +516,10 @@ Pas de vérification par SMS : il n'existe pas de fournisseur SMS gratuit pour l
 **Plafonds mensuels** : email non vérifié : 0 $ · email vérifié, identité non vérifiée : **150 $** · identité vérifiée : **3 000 $** · sur mesure : 10 000 $ par défaut. **Montée automatique** réservée aux identités vérifiées, avec les échanges terminés : ×1,5 dès 3, ×2 dès 10, ×3 dès 25. L'administrateur peut fixer un plafond à la main pour un client.
 ### 14.6 Identité visuelle
 Couleurs du logo : vert (principal), anthracite, cyan (accent). Cartes de statistiques toutes de couleurs différentes (vert, cyan, orange, anthracite) pour ne jamais répéter la même couleur ; l'ambre reste réservé au statut « en cours ».
+
+## 15. Numéros de réception par réseau (v1.4)
+
+- Chaque réseau a son propre numéro de réception : PayPal, Equity, M-Pesa, Airtel Money, Orange Money, Afrimoney. L'administrateur peut les modifier, en ajouter et en supprimer (site et application Viratech Admin).
+- **FlexPay activé** : le client ne voit aucun numéro. Il arrive directement sur l'écran de paiement automatique FlexPay (mobile money ou carte Visa), avec les instructions, sans capture à envoyer.
+- **FlexPay désactivé** : le client choisit son réseau et paie vers le numéro de ce réseau (M-Pesa vers le numéro M-Pesa, Airtel vers le numéro Airtel), puis envoie la capture de son paiement.
+- Si la source est PayPal, le client paie par facture PayPal ou vers le compte PayPal, quel que soit l'état de FlexPay.

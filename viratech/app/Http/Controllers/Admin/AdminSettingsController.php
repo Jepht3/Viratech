@@ -69,6 +69,24 @@ class AdminSettingsController extends Controller
         return back()->with('ok', 'Compte de réception enregistré.');
     }
 
+    /** Ajoute un numéro de réception (un par réseau : M-Pesa, Airtel Money, Orange Money, Afrimoney, Equity, PayPal). */
+    public function createAccount(Request $request)
+    {
+        $data = $request->validate(['kind' => ['required', \Illuminate\Validation\Rule::in(array_keys(CompanyAccount::KINDS))], 'label' => 'nullable|string|max:80', 'account_value' => 'required|string|max:190', 'holder_name' => 'nullable|string|max:120']);
+        $account = CompanyAccount::create(['kind' => $data['kind'], 'label' => ($data['label'] ?? null) ?: CompanyAccount::KINDS[$data['kind']], 'account_value' => $data['account_value'], 'holder_name' => $data['holder_name'] ?? null, 'is_active' => true]);
+        AuditLog::record($request->user(), 'company_account.created', $account, null, $data);
+
+        return back()->with('ok', 'Numéro ajouté.');
+    }
+
+    public function deleteAccount(Request $request, CompanyAccount $account)
+    {
+        AuditLog::record($request->user(), 'company_account.deleted', $account, $account->only('kind', 'account_value'), null);
+        $account->delete();
+
+        return back()->with('ok', 'Numéro supprimé.');
+    }
+
     public function clients()
     {
         return view('admin.clients', ['clients' => User::where('role', 'client')->withCount('orders')->latest()->paginate(30)]);

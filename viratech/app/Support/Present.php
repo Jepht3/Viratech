@@ -34,7 +34,7 @@ class Present
             'id' => $c->id, 'code' => $c->code, 'label' => $c->label, 'source_kind' => $c->source_kind, 'target_kind' => $c->target_kind,
             'is_withdrawal' => $c->isWithdrawal(), 'min_amount' => (float) $c->min_amount, 'fixed_fee' => (float) $c->fixed_fee,
             'eta_min_minutes' => $c->eta_min_minutes, 'eta_max_minutes' => $c->eta_max_minutes, 'hold_minutes' => $c->hold_minutes, 'eta' => $c->etaLabel(),
-            'is_active' => $c->is_active, 'coming_soon' => $c->coming_soon,
+            'is_active' => $c->is_active, 'coming_soon' => $c->coming_soon, 'payment_methods' => $c->coming_soon ? [] : \App\Services\OrderWorkflow::allowedPayment($c), 'flexpay_enabled' => \App\Models\Setting::bool('flexpay.enabled'),
             'tiers' => $c->tiers->map(fn ($t) => ['min_amount' => (float) $t->min_amount, 'percent' => (float) $t->percent])->values(),
         ];
     }
@@ -113,7 +113,18 @@ class Present
             'paypal_invoice' => ['type' => 'paypal_invoice', 'amount' => $amount, 'invoice_id' => $o->paypal_invoice_id, 'proof_required' => false],
             'paypal_account' => ['type' => 'paypal_account', 'amount' => $amount, 'account' => CompanyAccount::forKind('paypal')?->account_value, 'reference' => $o->reference, 'proof_required' => true],
             'flexpay_mobile', 'flexpay_card' => ['type' => 'flexpay', 'method' => $o->payment_method, 'amount' => $amount, 'started' => (bool) $o->flexpay_reference, 'url' => $o->flexpay_url, 'proof_required' => false],
-            default => ['type' => 'deposit', 'amount' => $amount, 'from' => $o->source_kind, 'account' => CompanyAccount::forKind($o->corridor->source_kind)?->account_value, 'reference' => $o->reference, 'proof_required' => true],
+            default => self::deposit($o, $amount),
         };
+    }
+
+    /** Virement direct : on montre le numéro du réseau choisi par le client (M-Pesa, Airtel, Orange, Afrimoney ou Equity). */
+    private static function deposit(Order $o, float $amount): array
+    {
+        $acc = CompanyAccount::forOrder($o);
+
+        return [
+            'type' => 'deposit', 'amount' => $amount, 'from' => $o->source_kind, 'network' => $acc?->kindLabel(),
+            'account' => $acc?->account_value, 'holder' => $acc?->holder_name, 'reference' => $o->reference, 'proof_required' => true,
+        ];
     }
 }

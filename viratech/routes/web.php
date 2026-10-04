@@ -81,7 +81,9 @@ Route::middleware('auth')->group(function () {
             Route::get('/frais', [AdminSettingsController::class, 'fees']);
             Route::post('/frais/{corridor}', [AdminSettingsController::class, 'updateFees']);
             Route::get('/comptes', [AdminSettingsController::class, 'accounts']);
+            Route::post('/comptes', [AdminSettingsController::class, 'createAccount']);
             Route::post('/comptes/{account}', [AdminSettingsController::class, 'updateAccount']);
+            Route::delete('/comptes/{account}', [AdminSettingsController::class, 'deleteAccount']);
             Route::get('/audit', [AdminSettingsController::class, 'audit']);
             Route::post('/commandes/{reference}/lever-delai', [AdminOrderController::class, 'releaseHold']);
             Route::get('/parametres', [AdminIntegrationsController::class, 'show']);

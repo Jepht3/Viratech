@@ -23,6 +23,7 @@ class SettingsTest extends TestCase
         parent::setUp();
         $this->seed(DatabaseSeeder::class);
         Notification::fake();
+        config(['viratech.simulate_paypal' => true]);
     }
 
     private function admin(): User

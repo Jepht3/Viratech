@@ -14,7 +14,7 @@
         <div class="grid" style="gap:10px">
             @foreach($corridors as $c)
                 <label class="row card" style="padding:14px;border-radius:18px;cursor:{{ $c->coming_soon ? 'not-allowed' : 'pointer' }};margin:0;font-weight:500;{{ $c->coming_soon ? 'opacity:.55' : '' }}">
-                    <input type="radio" name="corridor" value="{{ $c->code }}" style="width:auto" data-withdraw="{{ $c->isWithdrawal() ? 1 : 0 }}" data-target="{{ $c->target_kind }}" data-source="{{ $c->source_kind }}" data-min="{{ $c->min_amount + 0 }}" {{ $c->coming_soon ? 'disabled' : '' }} {{ $first === $c->code ? 'checked' : '' }}>
+                    <input type="radio" name="corridor" value="{{ $c->code }}" style="width:auto" data-withdraw="{{ $c->isWithdrawal() ? 1 : 0 }}" data-payments='{{ json_encode($c->coming_soon ? [] : \App\Services\OrderWorkflow::allowedPayment($c)) }}' data-target="{{ $c->target_kind }}" data-source="{{ $c->source_kind }}" data-min="{{ $c->min_amount + 0 }}" {{ $c->coming_soon ? 'disabled' : '' }} {{ $first === $c->code ? 'checked' : '' }}>
                     <x-chan :kind="$c->source_kind" /><span class="mut">→</span><x-chan :kind="$c->target_kind" />
                     <span style="flex:1"><b>{{ $c->label }}</b><br><span class="xs mut">{{ $c->coming_soon ? 'Bientôt disponible' : 'Minimum '.($c->min_amount + 0).' $ · délai '.$c->etaLabel() }}</span></span>
                 </label>
@@ -74,8 +74,7 @@ function current() { return f.querySelector('input[name=corridor]:checked'); }
 function refresh() {
     const c = current(); if (!c) return;
     const withdraw = c.dataset.withdraw === '1';
-    $('sourceBox').style.display = withdraw ? 'none' : '';
-    fillPayment(withdraw);
+    fillPayment(JSON.parse(c.dataset.payments || '[]'));
     const src = $('source'); [...src.options].forEach(o => { const ok = c.dataset.source === 'equity' ? o.value === 'equity' : o.value !== 'equity'; o.hidden = !ok; o.disabled = !ok; });
     if (src.selectedOptions[0]?.disabled) src.value = [...src.options].find(o => !o.disabled).value;
     const allowed = kindsBy[c.dataset.target] || [], sel = $('payout'); let first = null;
@@ -90,17 +89,21 @@ const PAY = {
   paypal_invoice: ['Facture PayPal au montant exact (recommandé)', 'Vous payez la facture : le paiement est détecté automatiquement.'],
   paypal_account: ['Envoyer à notre compte PayPal', 'Vous envoyez à notre PayPal puis joignez la capture de votre paiement (obligatoire).'],
   transfer: ['Virement direct à notre compte', 'Vous envoyez à notre compte puis joignez la capture de votre paiement (obligatoire).'],
-  flexpay_mobile: ['Mobile money (FlexPay)', 'Vous validez sur votre téléphone avec votre code : confirmé automatiquement, sans capture.'],
-  flexpay_card: ['Carte Visa (FlexPay)', 'Vous payez sur la page sécurisée FlexPay : confirmé automatiquement, sans capture.']
+  flexpay_mobile: ['Mobile money via FlexPay', 'Paiement automatique : vous entrez votre numéro, puis vous validez avec votre code sur votre téléphone. Aucun numéro à copier, aucune capture.'],
+  flexpay_card: ['Carte Visa via FlexPay', 'Paiement automatique sur la page sécurisée FlexPay. Aucune capture à envoyer.']
 };
-function fillPayment(withdraw) {
-  const keys = withdraw ? ['paypal_invoice', 'paypal_account'] : ['transfer', 'flexpay_mobile', 'flexpay_card'];
+function fillPayment(keys) {
   const sel = $('payment'), keep = sel.value;
   sel.innerHTML = keys.map(k => '<option value="' + k + '">' + PAY[k][0] + '</option>').join('');
   if (keys.includes(keep)) sel.value = keep;
-  $('payHelp').textContent = PAY[sel.value][1];
+  syncPayment();
 }
-
+function syncPayment() {
+  const v = $('payment').value;
+  $('payHelp').textContent = v ? PAY[v][1] : '';
+  // Le réseau d'envoi (M-Pesa, Airtel…) n'est demandé que pour un virement direct : avec FlexPay, le numéro n'est pas affiché.
+  $('sourceBox').style.display = v === 'transfer' ? '' : 'none';
+}
 function quote() {
     clearTimeout(timer);
     timer = setTimeout(async () => {
@@ -116,7 +119,7 @@ function quote() {
 
 f.addEventListener('change', e => e.target.name === 'corridor' ? refresh() : null);
 amount.addEventListener('input', quote);
-$('payment').addEventListener('change', () => $('payHelp').textContent = PAY[$('payment').value][1]);
+$('payment').addEventListener('change', syncPayment);
 refresh();
 </script>
 @endpush

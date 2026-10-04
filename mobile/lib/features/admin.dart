@@ -298,24 +298,103 @@ class _FeeCardState extends State<_FeeCard> {
 
 // ───────────────────────── Comptes de réception (administrateur) ─────────────────────────
 
-class AccountsScreen extends StatelessWidget {
+class AccountsScreen extends StatefulWidget {
   const AccountsScreen({super.key});
+  @override
+  State<AccountsScreen> createState() => _AccountsScreenState();
+}
+
+class _AccountsScreenState extends State<AccountsScreen> {
+  int rev = 0;
+
+  Future<void> _add() async {
+    final ok = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: VT.card,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+      builder: (_) => const _AddAccountSheet(),
+    );
+    if (ok == true) setState(() => rev++);
+  }
 
   @override
   Widget build(BuildContext context) {
     return DataView<List>(
+      key: ValueKey(rev),
       load: () async => (await Api.i.get('/admin/accounts')) as List,
       builder: (context, list, refresh) => ListView(padding: kPagePadding, children: [
-        const PageTitle('Comptes de réception', subtitle: 'Affichés aux clients quand ils doivent payer. Changements journalisés.'),
-        for (final a in list) _AccountCard(account: Map<String, dynamic>.from(a as Map)),
+        const PageTitle('Comptes de réception', subtitle: 'Un numéro par réseau. Avec FlexPay activé, les clients ne les voient plus.'),
+        FilledButton.icon(onPressed: _add, icon: const Icon(Icons.add_rounded), label: const Text('Ajouter un numéro')),
+        const SizedBox(height: 14),
+        for (final a in list) _AccountCard(account: Map<String, dynamic>.from(a as Map), onDeleted: () => setState(() => rev++)),
       ]),
     );
   }
 }
 
+class _AddAccountSheet extends StatefulWidget {
+  const _AddAccountSheet();
+  @override
+  State<_AddAccountSheet> createState() => _AddAccountSheetState();
+}
+
+class _AddAccountSheetState extends State<_AddAccountSheet> {
+  static const kinds = {'mpesa': 'M-Pesa', 'airtel': 'Airtel Money', 'orange': 'Orange Money', 'afrimoney': 'Afrimoney', 'equity': 'Equity', 'paypal': 'PayPal'};
+  String kind = 'mpesa';
+  final _value = TextEditingController();
+  final _holder = TextEditingController();
+  bool busy = false;
+  String? error;
+
+  @override
+  void dispose() {
+    _value.dispose();
+    _holder.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    setState(() {
+      busy = true;
+      error = null;
+    });
+    try {
+      await Api.i.post('/admin/accounts', data: {'kind': kind, 'account_value': _value.text.trim(), if (_holder.text.trim().isNotEmpty) 'holder_name': _holder.text.trim()});
+      if (mounted) Navigator.pop(context, true);
+    } catch (e) {
+      if (mounted) setState(() => error = '$e');
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 22, 20, 22 + MediaQuery.of(context).viewInsets.bottom),
+      child: SingleChildScrollView(
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          const Text('Ajouter un numéro de réception', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 14),
+          DropdownButtonFormField<String>(initialValue: kind, decoration: const InputDecoration(labelText: 'Réseau'), items: [for (final e in kinds.entries) DropdownMenuItem(value: e.key, child: Text(e.value))], onChanged: (v) => setState(() => kind = v ?? kind)),
+          const SizedBox(height: 12),
+          TextField(controller: _value, keyboardType: kind == 'paypal' ? TextInputType.emailAddress : TextInputType.text, decoration: InputDecoration(labelText: kind == 'paypal' ? 'Adresse PayPal' : 'Numéro / compte')),
+          const SizedBox(height: 12),
+          TextField(controller: _holder, decoration: const InputDecoration(labelText: 'Titulaire (facultatif)')),
+          if (error != null) Padding(padding: const EdgeInsets.only(top: 10), child: Text(error!, style: const TextStyle(color: VT.badFg))),
+          const SizedBox(height: 16),
+          FilledButton(onPressed: busy ? null : _save, child: const Text('Ajouter')),
+        ]),
+      ),
+    );
+  }
+}
+
 class _AccountCard extends StatefulWidget {
-  const _AccountCard({required this.account});
+  const _AccountCard({required this.account, required this.onDeleted});
   final Map<String, dynamic> account;
+  final VoidCallback onDeleted;
   @override
   State<_AccountCard> createState() => _AccountCardState();
 }
@@ -347,6 +426,20 @@ class _AccountCardState extends State<_AccountCard> {
     }
   }
 
+  Future<void> _delete() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(title: const Text('Supprimer ce numéro ?'), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')), FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Supprimer'))]),
+    );
+    if (ok != true) return;
+    try {
+      await Api.i.delete('/admin/accounts/${widget.account['id']}');
+      widget.onDeleted();
+    } catch (e) {
+      if (mounted) toast(context, '$e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final kind = '${widget.account['kind']}';
@@ -358,12 +451,16 @@ class _AccountCardState extends State<_AccountCard> {
         const SizedBox(height: 10),
         TextField(controller: label, decoration: const InputDecoration(labelText: 'Libellé')),
         const SizedBox(height: 10),
-        TextField(controller: value, onChanged: (_) => setState(() {}), decoration: InputDecoration(labelText: kind == 'paypal' ? 'Adresse PayPal Business' : 'Numéro de compte')),
+        TextField(controller: value, onChanged: (_) => setState(() {}), decoration: InputDecoration(labelText: kind == 'paypal' ? 'Adresse PayPal Business' : 'Numéro / compte')),
         const SizedBox(height: 10),
         TextField(controller: holder, decoration: const InputDecoration(labelText: 'Titulaire (facultatif)')),
         if (provisional) Container(margin: const EdgeInsets.only(top: 10), padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: VT.badBg, borderRadius: BorderRadius.circular(12)), child: const Text('Valeur provisoire : à remplacer avant la mise en service.', style: TextStyle(color: VT.badFg, fontSize: 12.5, fontWeight: FontWeight.w600))),
         const SizedBox(height: 12),
-        FilledButton(onPressed: busy ? null : _save, child: const Text('Enregistrer')),
+        Row(children: [
+          Expanded(child: FilledButton(onPressed: busy ? null : _save, child: const Text('Enregistrer'))),
+          const SizedBox(width: 10),
+          OutlinedButton(style: OutlinedButton.styleFrom(foregroundColor: VT.badFg), onPressed: busy ? null : _delete, child: const Icon(Icons.delete_outline_rounded)),
+        ]),
       ]),
     );
   }

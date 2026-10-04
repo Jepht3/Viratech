@@ -95,7 +95,7 @@ class OrderController extends Controller
         return view('client.order', [
             'order' => $order,
             'paypalAccount' => CompanyAccount::forKind('paypal'),
-            'depositAccount' => $order->corridor->isWithdrawal() ? null : CompanyAccount::forKind($order->corridor->source_kind),
+            'depositAccount' => $order->corridor->isWithdrawal() ? null : CompanyAccount::forOrder($order),
             'simulate' => config('viratech.simulate_paypal'),
         ]);
     }

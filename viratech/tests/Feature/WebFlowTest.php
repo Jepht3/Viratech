@@ -144,6 +144,24 @@ class WebFlowTest extends TestCase
         }
     }
 
+    public function test_l_admin_ajoute_et_supprime_des_numeros_par_reseau(): void
+    {
+        $this->as('admin@viratech.test')->post('/admin/comptes', ['kind' => 'airtel', 'account_value' => '0997777777', 'holder_name' => 'Viratech SARL'])->assertSessionHas('ok');
+        $this->assertSame(2, \App\Models\CompanyAccount::where('kind', 'airtel')->count());
+        $id = \App\Models\CompanyAccount::where('account_value', '0997777777')->value('id');
+        $this->as('operateur@viratech.test')->post('/admin/comptes', ['kind' => 'airtel', 'account_value' => '1'])->assertForbidden();
+        $this->as('admin@viratech.test')->delete('/admin/comptes/'.$id)->assertSessionHas('ok');
+        $this->assertDatabaseMissing('company_accounts', ['id' => $id]);
+    }
+
+    public function test_la_page_de_commande_montre_le_numero_du_reseau_choisi(): void
+    {
+        \App\Models\CompanyAccount::where('kind', 'airtel')->update(['account_value' => '0990000002']);
+        $client = User::where('email', 'client@viratech.test')->first();
+        $this->as('client@viratech.test')->post('/echange', ['corridor' => 'mobile_paypal', 'amount' => 100, 'payout_method_id' => $client->payoutMethods()->where('kind', 'paypal')->first()->id, 'source_kind' => 'airtel', 'payment_method' => 'transfer'])->assertRedirect();
+        $this->as('client@viratech.test')->get('/commandes/'.Order::first()->reference)->assertOk()->assertSee('0990000002')->assertDontSee('0000000000000');
+    }
+
     public function test_l_api_de_version_repond(): void
     {
         $this->getJson('/api/application/version')->assertOk()->assertJsonStructure(['build', 'version', 'url', 'url_admin', 'notes']);

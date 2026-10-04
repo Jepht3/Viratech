@@ -156,6 +156,23 @@ class AdminApiController extends Controller
         return $account->fresh()->only('id', 'kind', 'label', 'account_value', 'holder_name', 'is_active');
     }
 
+    public function createAccount(Request $request)
+    {
+        $data = $request->validate(['kind' => ['required', \Illuminate\Validation\Rule::in(array_keys(CompanyAccount::KINDS))], 'label' => 'nullable|string|max:80', 'account_value' => 'required|string|max:190', 'holder_name' => 'nullable|string|max:120']);
+        $account = CompanyAccount::create(['kind' => $data['kind'], 'label' => $data['label'] ?? null ?: CompanyAccount::KINDS[$data['kind']], 'account_value' => $data['account_value'], 'holder_name' => $data['holder_name'] ?? null, 'is_active' => true]);
+        AuditLog::record($request->user(), 'company_account.created', $account, null, $data);
+
+        return response()->json($account->only('id', 'kind', 'label', 'account_value', 'holder_name', 'is_active'), 201);
+    }
+
+    public function deleteAccount(Request $request, CompanyAccount $account)
+    {
+        AuditLog::record($request->user(), 'company_account.deleted', $account, $account->only('kind', 'account_value'), null);
+        $account->delete();
+
+        return ['ok' => true];
+    }
+
     private function act(callable $fn, string $reference)
     {
         $order = Order::where('reference', $reference)->firstOrFail();

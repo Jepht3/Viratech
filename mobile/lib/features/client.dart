@@ -167,12 +167,16 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   static const _paymentOptions = {
     'paypal_invoice': ['Facture PayPal au montant exact', 'Vous payez la facture : détecté automatiquement, sans capture.'],
     'paypal_account': ['Envoyer à notre compte PayPal', 'Vous envoyez à notre PayPal puis joignez la capture (obligatoire).'],
-    'transfer': ['Virement direct à notre compte', 'Vous envoyez à notre compte puis joignez la capture (obligatoire).'],
-    'flexpay_mobile': ['Mobile money (FlexPay)', 'Vous validez sur votre téléphone : confirmé automatiquement, sans capture.'],
-    'flexpay_card': ['Carte Visa (FlexPay)', 'Vous payez sur la page sécurisée FlexPay : confirmé automatiquement.'],
+    'transfer': ['Virement direct (numéro du réseau choisi)', 'Vous envoyez au numéro du réseau choisi (M-Pesa vers le numéro M-Pesa, Airtel vers le numéro Airtel…) puis joignez la capture (obligatoire).'],
+    'flexpay_mobile': ['Mobile money via FlexPay', 'Paiement automatique : vous entrez votre numéro et validez avec votre code. Aucun numéro à copier, aucune capture.'],
+    'flexpay_card': ['Carte Visa via FlexPay', 'Paiement automatique sur la page sécurisée FlexPay. Aucune capture à envoyer.'],
   };
 
-  List<String> get _allowedPayments => corridor?['is_withdrawal'] == true ? ['paypal_invoice', 'paypal_account'] : ['transfer', 'flexpay_mobile', 'flexpay_card'];
+  /// Façons de payer autorisées par le serveur : avec FlexPay activé, seulement FlexPay (aucun numéro n'est montré).
+  List<String> get _allowedPayments {
+    final l = (corridor?['payment_methods'] as List?)?.map((e) => '$e').toList() ?? <String>[];
+    return l.isEmpty ? ['paypal_invoice'] : l;
+  }
 
   Map<String, dynamic>? get corridor => corridors.where((c) => c['code'] == code).firstOrNull;
 
@@ -225,13 +229,12 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   Future<void> _submit() async {
     setState(() => busy = true);
     try {
-      final c = corridor!;
       final r = await Api.i.post('/orders', data: {
         'corridor': code,
         'amount': double.parse(_amount.text.replaceAll(',', '.')),
         'payout_method_id': methodId,
         'payment_method': paymentMethod,
-        if (c['is_withdrawal'] != true) 'source_kind': source,
+        if (paymentMethod == 'transfer') 'source_kind': source,
       });
       if (!mounted) return;
       _amount.clear();
@@ -270,28 +273,29 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
             decoration: InputDecoration(labelText: 'Montant envoyé (USD)', hintText: c == null ? '' : '${n(c['min_amount']).toInt()}.00', suffixText: '\$'),
           ),
           const SizedBox(height: 14),
-          if (c != null && c['is_withdrawal'] != true) ...[
-            DropdownButtonFormField<String>(
-              key: ValueKey('src-$code'),
-              initialValue: source,
-              decoration: const InputDecoration(labelText: "Vous envoyez l'argent depuis"),
-              items: [for (final s in sources) DropdownMenuItem(value: s, child: Text(_sourceLabels[s] ?? s))],
-              onChanged: (v) => setState(() => source = v ?? source),
-            ),
-            const SizedBox(height: 14),
-          ],
           if (c != null) ...[
             DropdownButtonFormField<String>(
-              key: ValueKey('pay-$code'),
-              initialValue: _paymentOptions.containsKey(paymentMethod) && _allowedPayments.contains(paymentMethod) ? paymentMethod : _allowedPayments.first,
+              key: ValueKey('pay-$code-${_allowedPayments.join()}'),
+              initialValue: _allowedPayments.contains(paymentMethod) ? paymentMethod : _allowedPayments.first,
               isExpanded: true,
               decoration: const InputDecoration(labelText: 'Comment voulez-vous payer ?'),
               items: [for (final k in _allowedPayments) DropdownMenuItem(value: k, child: Text(_paymentOptions[k]![0], overflow: TextOverflow.ellipsis))],
               onChanged: (v) => setState(() => paymentMethod = v ?? _allowedPayments.first),
             ),
             Padding(padding: const EdgeInsets.only(top: 6), child: Text(_paymentOptions[_allowedPayments.contains(paymentMethod) ? paymentMethod : _allowedPayments.first]![1], style: const TextStyle(color: VT.mut, fontSize: 12))),
-          ],          const SizedBox(height: 14),
-          if (el.isEmpty)
+            const SizedBox(height: 14),
+          ],
+          // Le réseau d'envoi (M-Pesa, Airtel…) n'est demandé que pour un virement direct : avec FlexPay, aucun numéro n'est affiché.
+          if (c != null && c['is_withdrawal'] != true && paymentMethod == 'transfer') ...[
+            DropdownButtonFormField<String>(
+              key: ValueKey('src-$code'),
+              initialValue: source,
+              decoration: const InputDecoration(labelText: "Vous envoyez l'argent depuis (réseau)"),
+              items: [for (final s in sources) DropdownMenuItem(value: s, child: Text(_sourceLabels[s] ?? s))],
+              onChanged: (v) => setState(() => source = v ?? source),
+            ),
+            const SizedBox(height: 14),
+          ],          if (el.isEmpty)
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(color: VT.waitBg, borderRadius: BorderRadius.circular(14)),

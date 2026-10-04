@@ -61,8 +61,8 @@
                     <div class="copy mono" style="margin:10px 0">{{ $paypalAccount?->account_value }}</div>
                     <p class="sm">Dans la note, indiquez la référence <b class="mono">{{ $order->reference }}</b>.</p>
                 @else
-                    <p class="sm">Envoyez exactement <b>{{ number_format($order->amount, 2, ',', ' ') }} $</b> depuis votre compte <b>{{ \App\Models\PayoutMethod::KINDS[$order->source_kind] ?? $order->source_kind }}</b> vers :</p>
-                    <div class="copy mono" style="margin:10px 0">{{ $depositAccount?->account_value }}</div>
+                    <p class="sm">Envoyez exactement <b>{{ number_format($order->amount, 2, ',', ' ') }} $</b> depuis votre compte <b>{{ \App\Models\PayoutMethod::KINDS[$order->source_kind] ?? $order->source_kind }}</b> vers le numéro <b>{{ $depositAccount?->kindLabel() }}</b> de Viratech :</p>
+                    <div class="copy mono" style="margin:10px 0">{{ $depositAccount?->account_value ?? 'Numéro non configuré : contactez Viratech' }}@if($depositAccount?->holder_name)<div class="xs mut">Au nom de {{ $depositAccount->holder_name }}</div>@endif</div>
                     <p class="sm">Référence à indiquer : <b class="mono">{{ $order->reference }}</b>.</p>
                 @endif
                 <div class="flash" style="background:var(--waitbg);color:var(--waitfg);margin-top:12px">Après votre paiement, envoyez <b>la capture de la transaction</b> : sans elle, nous ne pouvons pas vérifier la réception.</div>

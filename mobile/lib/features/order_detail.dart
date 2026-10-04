@@ -260,8 +260,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             ),
           ],
         ] else ...[
-          Text('Envoyez exactement $amount depuis votre compte ${i['from']} vers :'),
-          _copyBox('${i['account']}'),
+          Text('Envoyez exactement $amount depuis votre compte ${i['from']} vers le numéro ${i['network'] ?? ''} de Viratech :'),
+          _copyBox('${i['account'] ?? 'Numéro non configuré : contactez Viratech'}'),
+          if (i['holder'] != null) Text('Au nom de ${i['holder']}', style: const TextStyle(color: VT.mut, fontSize: 12)),
           Text('Référence à indiquer : ${i['reference']}'),
         ],
         if (o['can_simulate_payment'] == true) ...[

@@ -2,9 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\CompanyAccount;
 use App\Models\Corridor;
 use App\Models\LedgerEntry;
 use App\Models\Order;
+use App\Models\Setting;
 use App\Models\User;
 use App\Services\FlexpayGateway;
 use App\Services\HoldPolicy;
@@ -26,6 +28,7 @@ class OrderWorkflowTest extends TestCase
         parent::setUp();
         $this->seed(DatabaseSeeder::class);
         Notification::fake();
+        config(['viratech.simulate_paypal' => true]);
         $this->wf = app(OrderWorkflow::class);
     }
 
@@ -183,6 +186,47 @@ class OrderWorkflowTest extends TestCase
         $client = $this->client();
         $client->update(['email_verified_at' => null]);
         $this->fails(fn () => $this->wf->create($client->fresh(), Corridor::where('code', 'paypal_equity')->first(), 200, $client->payoutMethods()->where('kind', 'equity')->first()));
+    }
+
+    public function test_avec_flexpay_actif_les_numeros_ne_sont_pas_proposes(): void
+    {
+        Setting::set('flexpay.enabled', '1');
+        $mobile = Corridor::where('code', 'mobile_paypal')->first();
+        $equity = Corridor::where('code', 'equity_paypal')->first();
+        $this->assertSame(['flexpay_mobile', 'flexpay_card'], OrderWorkflow::allowedPayment($mobile));
+        $this->assertSame(['flexpay_card', 'flexpay_mobile'], OrderWorkflow::allowedPayment($equity));
+        $this->assertSame(['paypal_invoice', 'paypal_account'], OrderWorkflow::allowedPayment(Corridor::where('code', 'paypal_equity')->first()));
+
+        $client = $this->client();
+        $pp = $client->payoutMethods()->where('kind', 'paypal')->first();
+        $this->fails(fn () => $this->wf->create($client, $mobile, 100, $pp, 'mpesa', 'transfer'));      // virement direct : refusé, FlexPay est actif
+        $order = $this->wf->create($client, $mobile, 100, $pp);                                    // par défaut : FlexPay mobile money
+        $this->assertSame('flexpay_mobile', $order->payment_method);
+        $this->assertNull(\App\Support\Present::order($order->fresh(), true)['instructions']['account'] ?? null);
+    }
+
+    public function test_sans_flexpay_ni_simulation_seul_le_virement_direct_est_propose(): void
+    {
+        config(['viratech.simulate_paypal' => false]);
+        $this->assertSame(['transfer'], OrderWorkflow::allowedPayment(Corridor::where('code', 'mobile_paypal')->first()));
+    }
+
+    public function test_chaque_reseau_mobile_money_a_son_propre_numero(): void
+    {
+        CompanyAccount::where('kind', 'mpesa')->update(['account_value' => '0810000001']);
+        CompanyAccount::where('kind', 'airtel')->update(['account_value' => '0990000002']);
+        CompanyAccount::where('kind', 'orange')->update(['account_value' => '0850000003']);
+        $client = $this->client();
+        $pp = $client->payoutMethods()->where('kind', 'paypal')->first();
+        $corridor = Corridor::where('code', 'mobile_paypal')->first();
+
+        foreach (['mpesa' => '0810000001', 'airtel' => '0990000002', 'orange' => '0850000003'] as $network => $number) {
+            $order = $this->wf->create($client, $corridor, 100, $pp, $network, 'transfer');
+            $i = \App\Support\Present::order($order->fresh(), true)['instructions'];
+            $this->assertSame($number, $i['account'], 'Le numéro affiché doit être celui du réseau '.$network);
+            $this->assertSame(CompanyAccount::KINDS[$network], $i['network']);
+            $order->update(['status' => 'cancelled']);
+        }
     }
 
     public function test_facon_de_payer_non_autorisee_est_refusee(): void

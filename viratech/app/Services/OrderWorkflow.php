@@ -28,12 +28,25 @@ class OrderWorkflow
 
     public function __construct(private FeeCalculator $fees, private PaypalGateway $paypal, private FlexpayGateway $flexpay, private HoldPolicy $hold) {}
 
-    /** Façons de payer autorisées selon l'échange : PayPal en source = facture ou compte ; sinon virement direct ou FlexPay (mobile money / carte Visa). */
+    /**
+     * Façons de payer autorisées selon l'échange.
+     *  - PayPal en source : facture PayPal ou envoi à notre compte PayPal.
+     *  - Autres sources avec FlexPay ACTIVÉ : uniquement FlexPay (mobile money ou carte Visa) : les numéros ne sont pas montrés,
+     *    le client arrive directement sur l'écran de paiement automatique.
+     *  - Autres sources sans FlexPay : virement direct vers le numéro du réseau choisi, avec capture.
+     * En mode local (simulation), tout est proposé quand FlexPay n'est pas activé, pour pouvoir tout tester.
+     */
     public static function allowedPayment(Corridor $c): array
     {
-        return $c->isWithdrawal() ? ['paypal_invoice', 'paypal_account'] : ['transfer', 'flexpay_mobile', 'flexpay_card'];
-    }
+        if ($c->isWithdrawal()) {
+            return ['paypal_invoice', 'paypal_account'];
+        }
+        if (\App\Models\Setting::bool('flexpay.enabled')) {
+            return $c->source_kind === 'equity' ? ['flexpay_card', 'flexpay_mobile'] : ['flexpay_mobile', 'flexpay_card'];
+        }
 
+        return config('viratech.simulate_paypal') ? ['transfer', 'flexpay_mobile', 'flexpay_card'] : ['transfer'];
+    }
     public function create(User $user, Corridor $corridor, string|float $amount, PayoutMethod $method, ?string $sourceKind = null, ?string $paymentMethod = null): Order
     {
         $paymentMethod = ['invoice' => 'paypal_invoice', 'account' => 'paypal_account'][$paymentMethod] ?? $paymentMethod;
@@ -51,10 +64,10 @@ class OrderWorkflow
         if ($method->user_id !== $user->id || ! in_array($method->kind, PayoutMethod::kindsForTarget($corridor->target_kind), true)) {
             throw new InvalidArgumentException('Le moyen de réception choisi ne correspond pas à cet échange.');
         }
-        if (! $corridor->isWithdrawal()) {
+        if ($paymentMethod === 'transfer') {
             $allowed = $corridor->source_kind === 'equity' ? ['equity'] : PayoutMethod::MOBILE;
             if (! in_array($sourceKind, $allowed, true)) {
-                throw new InvalidArgumentException('Indiquez le compte depuis lequel vous allez envoyer l\'argent.');
+                throw new InvalidArgumentException('Indiquez le réseau (M-Pesa, Airtel Money…) depuis lequel vous allez envoyer l\'argent.');
             }
         }
 

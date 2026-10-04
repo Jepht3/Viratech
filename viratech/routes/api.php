@@ -82,7 +82,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/settings', [AdminExtrasApiController::class, 'saveSettings']);
             Route::post('/settings/test-mail', [AdminExtrasApiController::class, 'testMail']);
             Route::get('/accounts', [AdminApiController::class, 'accounts']);
+            Route::post('/accounts', [AdminApiController::class, 'createAccount']);
             Route::post('/accounts/{account}', [AdminApiController::class, 'updateAccount']);
+            Route::delete('/accounts/{account}', [AdminApiController::class, 'deleteAccount']);
         });
     });
 });

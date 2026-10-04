@@ -61,8 +61,10 @@ class DatabaseSeeder extends Seeder
     {
         CompanyAccount::firstOrCreate(['kind' => 'paypal'], ['label' => 'PayPal Business', 'account_value' => 'jepht3@gmail.com']);
         CompanyAccount::firstOrCreate(['kind' => 'equity'], ['label' => 'Equity', 'account_value' => '0000000000000000000000']);
-        CompanyAccount::firstOrCreate(['kind' => 'mobile_money'], ['label' => 'Mobile money', 'account_value' => '0000000000000']);
-    }
+        // Un numéro par réseau : chaque réseau a son propre numéro (à remplacer dans l'admin).
+        foreach (['mpesa' => 'M-Pesa', 'airtel' => 'Airtel Money', 'orange' => 'Orange Money', 'afrimoney' => 'Afrimoney'] as $kind => $label) {
+            CompanyAccount::firstOrCreate(['kind' => $kind], ['label' => $label, 'account_value' => '0000000000000']);
+        }    }
 
     private function users(): void
     {
