@@ -38,6 +38,8 @@ class ClientApiController extends Controller
             'used_month' => (float) $orders->whereIn('status', ['active', 'completed'])->where('created_at', '>=', $month)->sum('amount'),
             'monthly_limit' => $user->monthlyLimit(),
             'active_count' => $orders->where('status', 'active')->count(),
+            'total_exchanged' => (float) $orders->where('status', 'completed')->sum('amount'),
+            'completed_count' => $orders->where('status', 'completed')->count(),
             'recent' => $orders->take(5)->map(fn ($o) => Present::order($o))->values(),
             'chart' => ['labels' => $labels, 'series' => $series],
             'unread_notifications' => $user->unreadNotifications()->count(),

@@ -176,11 +176,11 @@ class _AppShellState extends State<AppShell> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-        decoration: BoxDecoration(color: on ? VT.amber : Colors.transparent, borderRadius: BorderRadius.circular(99)),
+        decoration: BoxDecoration(color: on ? VT.accent : Colors.transparent, borderRadius: BorderRadius.circular(99)),
         child: Stack(clipBehavior: Clip.none, children: [
           Column(mainAxisSize: MainAxisSize.min, children: [
-            Icon(it.icon, size: 22, color: on ? const Color(0xFF2B2208) : const Color(0xFFAEB4D1)),
-            Text(label, style: TextStyle(fontSize: 10.5, fontWeight: on ? FontWeight.w800 : FontWeight.w500, color: on ? const Color(0xFF2B2208) : const Color(0xFFAEB4D1))),
+            Icon(it.icon, size: 22, color: on ? const Color(0xFF04222B) : const Color(0xFFAEB4D1)),
+            Text(label, style: TextStyle(fontSize: 10.5, fontWeight: on ? FontWeight.w800 : FontWeight.w500, color: on ? const Color(0xFF04222B) : const Color(0xFFAEB4D1))),
           ]),
           if (badge > 0)
             Positioned(
@@ -217,7 +217,7 @@ class _AppShellState extends State<AppShell> {
                 width: 68,
                 height: 68,
                 alignment: Alignment.center,
-                decoration: BoxDecoration(color: const Color(0xFF12394A), shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 3)),
+                decoration: BoxDecoration(color: const Color(0xFF0A5F36), shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 3)),
                 child: Text(initials, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700)),
               ),
               const SizedBox(height: 10),
@@ -288,7 +288,7 @@ class MiniCalendar extends StatelessWidget {
     final lead = first.weekday - 1;
     final days = DateTime(now.year, now.month + 1, 0).day;
     final cells = <Widget>[
-      for (final d in ['L', 'M', 'M', 'J', 'V', 'S', 'D']) Center(child: Text(d, style: const TextStyle(fontSize: 10.5, color: Color(0xFF5B5873)))),
+      for (final d in ['L', 'M', 'M', 'J', 'V', 'S', 'D']) Center(child: Text(d, style: const TextStyle(fontSize: 10.5, color: Color(0xFF4E6358)))),
       for (var i = 0; i < lead; i++) const SizedBox.shrink(),
       for (var d = 1; d <= days; d++)
         Center(
@@ -296,14 +296,14 @@ class MiniCalendar extends StatelessWidget {
             width: 24,
             height: 24,
             alignment: Alignment.center,
-            decoration: d == now.day ? const BoxDecoration(color: Color(0xFF6A5AA8), shape: BoxShape.circle) : null,
+            decoration: d == now.day ? const BoxDecoration(color: VT.teal, shape: BoxShape.circle) : null,
             child: Text('$d', style: TextStyle(fontSize: 11, color: d == now.day ? Colors.white : VT.ink, fontWeight: d == now.day ? FontWeight.w700 : FontWeight.w400)),
           ),
         ),
     ];
     return Container(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: const Color(0xFFEDE9F6), borderRadius: BorderRadius.circular(18)),
+      decoration: BoxDecoration(color: const Color(0xFFE3F1E9), borderRadius: BorderRadius.circular(18)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('${daysFr[now.weekday - 1].substring(0, 3)}. ${now.day} ${monthsFr[now.month - 1]}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: VT.ink)),
         const SizedBox(height: 8),

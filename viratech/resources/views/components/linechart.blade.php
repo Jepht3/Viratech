@@ -20,10 +20,10 @@
     @for($g = 0; $g < 4; $g++)
         <line x1="0" x2="{{ $w }}" y1="{{ $padT + ($h - $padT - $padB) * $g / 3 }}" y2="{{ $padT + ($h - $padT - $padB) * $g / 3 }}" stroke="#EEF1F5"/>
     @endfor
-    @if(count($pts) > 1)<path d="{{ $path }}" fill="none" stroke="#232845" stroke-width="2.6" stroke-linecap="round"/>@endif
+    @if(count($pts) > 1)<path d="{{ $path }}" fill="none" stroke="#1C2429" stroke-width="2.6" stroke-linecap="round"/>@endif
     @if(max($series ?: [0]) > 0 && $peak !== false)
-        <circle cx="{{ $pts[$peak][0] }}" cy="{{ $pts[$peak][1] }}" r="5" fill="#fff" stroke="#232845" stroke-width="2.4"/>
-        <g transform="translate({{ min(max($pts[$peak][0] - 40, 0), $w - 80) }},{{ max($pts[$peak][1] - 40, 0) }})"><rect width="80" height="28" rx="8" fill="#232845"/><text x="40" y="18" text-anchor="middle" style="fill:#fff;font-size:11px;font-weight:600">{{ number_format(max($series), 0, ',', ' ') }} $</text></g>
+        <circle cx="{{ $pts[$peak][0] }}" cy="{{ $pts[$peak][1] }}" r="5" fill="#fff" stroke="#1C2429" stroke-width="2.4"/>
+        <g transform="translate({{ min(max($pts[$peak][0] - 40, 0), $w - 80) }},{{ max($pts[$peak][1] - 40, 0) }})"><rect width="80" height="28" rx="8" fill="#1C2429"/><text x="40" y="18" text-anchor="middle" style="fill:#fff;font-size:11px;font-weight:600">{{ number_format(max($series), 0, ',', ' ') }} $</text></g>
     @endif
     @foreach($labels as $i => $l)
         <text x="{{ $padL + ($w - $padL * 2) * $i / ($n - 1) }}" y="{{ $h - 6 }}" text-anchor="middle">{{ $l }}</text>

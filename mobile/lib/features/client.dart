@@ -39,19 +39,19 @@ class DashboardScreen extends StatelessWidget {
             childAspectRatio: 1.32,
             children: [
               StatTile(title: 'À recevoir (en cours)', value: money(n(d['to_receive'])), footer: '${d['active_count']} commande(s) en cours', color: VT.teal, icon: Icons.attach_money),
-              StatTile(title: 'Reçu ce mois', value: money(n(d['received_month'])), footer: 'Commandes terminées', color: VT.amber, icon: Icons.check_rounded, dark: false),
+              StatTile(title: 'Reçu ce mois', value: money(n(d['received_month'])), footer: 'Commandes terminées', color: VT.accent, icon: Icons.check_rounded, dark: false),
               StatTile(
                   title: 'Plafond mensuel',
                   value: limit == null ? 'Sur mesure' : '${money(n(d['used_month']), decimals: 0).replaceAll(' \$', '')} / ${money(n(limit), decimals: 0)}',
                   footer: 'Niveau de vérification ${session.user?['kyc_level']}',
                   color: VT.teal,
                   icon: Icons.speed_rounded),
-              StatTile(title: 'Notifications', value: '${d['unread_notifications']}', footer: 'Non lues', color: VT.navy, icon: Icons.notifications_rounded),
+              StatTile(title: 'Total échangé', value: money(n(d['total_exchanged']), decimals: 0), footer: '${d['completed_count']} commande(s) terminée(s)', color: VT.navy, icon: Icons.trending_up_rounded),
             ],
           ),
           const SizedBox(height: 14),
           FilledButton.icon(
-            style: FilledButton.styleFrom(backgroundColor: VT.amber, foregroundColor: const Color(0xFF2B2208)),
+            style: FilledButton.styleFrom(backgroundColor: VT.accent, foregroundColor: const Color(0xFF04222B)),
             onPressed: () => ShellScope.of(context).go('Échanger'),
             icon: const Icon(Icons.swap_horiz_rounded),
             label: const Text('Nouvel échange'),

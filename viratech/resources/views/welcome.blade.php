@@ -14,7 +14,7 @@
         <a class="brand" href="/"><img src="/img/logo.png" alt="Viratech" height="38"></a>
         <nav class="links"><a href="#suivi">Suivi en temps réel</a><a href="#frais">Frais</a><a href="#canaux">Canaux</a></nav>
         <a class="pillbtn ghost" href="/connexion">Connexion</a>
-        <a class="pillbtn" href="/inscription" style="background:#0B5470">Créer un compte</a>
+        <a class="pillbtn" href="/inscription" style="background:#08924B">Créer un compte</a>
     </header>
 
     <section class="hero">
@@ -34,7 +34,7 @@
             </div></div>
             <div class="phone b"><div class="scr">
                 <b style="font-size:13px">Commande VT-4X9K2A</b>
-                <div class="mini-hero" style="background:linear-gradient(135deg,#232845,#0B5470)"><span style="opacity:.8">Vous recevez</span><b>178,00 $</b><span style="opacity:.8">sur M-Pesa</span></div>
+                <div class="mini-hero" style="background:linear-gradient(135deg,#1C2429,#08924B)"><span style="opacity:.8">Vous recevez</span><b>178,00 $</b><span style="opacity:.8">sur M-Pesa</span></div>
                 <div class="tl"><div class="d"><span><b>Commande créée</b><br>14:28 · Système</span></div><div class="d"><span><b>Paiement PayPal reçu</b><br>14:31 · Système</span></div><div class="c"><span><b>Contrôle de sécurité</b><br>Opérateur · depuis 6 min</span></div><div><span>Versement effectué</span></div><div><span>Terminé</span></div></div>
             </div></div>
         </div>
