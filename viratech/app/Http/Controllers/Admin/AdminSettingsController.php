@@ -25,6 +25,7 @@ class AdminSettingsController extends Controller
             'eta_min_minutes' => 'required|integer|min:1',
             'eta_max_minutes' => 'required|integer|gte:eta_min_minutes',
             'is_active' => 'nullable|boolean',
+            'hold_days' => 'nullable|numeric|min:0|max:180',
             'tiers' => 'required|array',
             'tiers.*.min_amount' => 'nullable|numeric|min:0',
             'tiers.*.percent' => 'nullable|numeric|min:0|max:100',
@@ -40,6 +41,7 @@ class AdminSettingsController extends Controller
         $corridor->update([
             'min_amount' => $data['min_amount'], 'fixed_fee' => $data['fixed_fee'],
             'eta_min_minutes' => $data['eta_min_minutes'], 'eta_max_minutes' => $data['eta_max_minutes'],
+            'hold_minutes' => isset($data['hold_days']) ? (int) round($data['hold_days'] * 1440) : $corridor->hold_minutes,
             'is_active' => $corridor->coming_soon ? false : $request->boolean('is_active'),
         ]);
         $corridor->tiers()->delete();

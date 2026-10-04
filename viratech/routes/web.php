@@ -1,6 +1,9 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminIntegrationsController;
 use App\Http\Controllers\Admin\AdminOrderController;
+use App\Http\Controllers\Admin\KycAdminController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Admin\AdminSettingsController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ClientController;
@@ -29,6 +32,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/echange', [OrderController::class, 'store']);
         Route::get('/commandes', [OrderController::class, 'index']);
         Route::post('/commandes/{reference}/preuve', [OrderController::class, 'proof']);
+        Route::post('/commandes/{reference}/flexpay', [OrderController::class, 'flexpay']);
         Route::post('/commandes/{reference}/simuler-paiement', [OrderController::class, 'simulatePayment']);
         Route::get('/moyens-de-reception', [PayoutMethodController::class, 'index']);
         Route::post('/moyens-de-reception', [PayoutMethodController::class, 'store']);
@@ -37,6 +41,15 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/commandes/{reference}', [OrderController::class, 'show']);
     Route::get('/commandes/{reference}/preuves/{proof}', [OrderController::class, 'proofFile']);
+
+    // Profil : photo, téléphone, vérification d'identité (clients et équipe)
+    Route::get('/profil', [ProfileController::class, 'show']);
+    Route::post('/profil/photo', [ProfileController::class, 'avatar']);
+    Route::post('/profil/telephone/code', [ProfileController::class, 'sendPhoneCode'])->middleware('throttle:5,10');
+    Route::post('/profil/telephone/verifier', [ProfileController::class, 'verifyPhone'])->middleware('throttle:10,10');
+    Route::post('/profil/verification/code', [ProfileController::class, 'newChallenge']);
+    Route::post('/profil/verification', [ProfileController::class, 'submitKyc'])->middleware('throttle:5,60');
+    Route::get('/avatar/{id}', [ProfileController::class, 'avatarFile']);
 
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::post('/notifications/lire', [NotificationController::class, 'readAll']);
@@ -52,6 +65,13 @@ Route::middleware('auth')->group(function () {
         Route::post('/commandes/{reference}/bloquer', [AdminOrderController::class, 'block']);
         Route::post('/commandes/{reference}/debloquer', [AdminOrderController::class, 'unblock']);
         Route::post('/commandes/{reference}/refuser', [AdminOrderController::class, 'reject']);
+        Route::post('/commandes/{reference}/versement-flexpay', [AdminOrderController::class, 'flexpayPayout']);
+        Route::post('/commandes/{reference}/simuler-versement', [AdminOrderController::class, 'simulatePayout']);
+        Route::get('/verifications', [KycAdminController::class, 'index']);
+        Route::get('/verifications/{submission}', [KycAdminController::class, 'show']);
+        Route::get('/verifications/{submission}/fichier/{type}', [KycAdminController::class, 'file']);
+        Route::post('/verifications/{submission}/approuver', [KycAdminController::class, 'approve']);
+        Route::post('/verifications/{submission}/refuser', [KycAdminController::class, 'reject']);
         Route::get('/clients', [AdminSettingsController::class, 'clients']);
         Route::post('/clients/{user}/kyc', [AdminSettingsController::class, 'setKyc']);
 
@@ -62,6 +82,10 @@ Route::middleware('auth')->group(function () {
             Route::get('/comptes', [AdminSettingsController::class, 'accounts']);
             Route::post('/comptes/{account}', [AdminSettingsController::class, 'updateAccount']);
             Route::get('/audit', [AdminSettingsController::class, 'audit']);
+            Route::post('/commandes/{reference}/lever-delai', [AdminOrderController::class, 'releaseHold']);
+            Route::get('/parametres', [AdminIntegrationsController::class, 'show']);
+            Route::post('/parametres', [AdminIntegrationsController::class, 'save']);
+            Route::post('/parametres/test-email', [AdminIntegrationsController::class, 'testMail']);
         });
     });
 });

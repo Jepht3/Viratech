@@ -22,7 +22,7 @@
 <div class="shell">
     <aside class="side">
         <div class="profile">
-            <div class="avatar">{{ mb_strtoupper(mb_substr($u->name, 0, 1)) }}{{ mb_strtoupper(mb_substr(strrchr(' '.$u->name, ' '), 1, 1)) }}</div>
+            <a href="/profil" class="avatar" style="display:grid;overflow:hidden" title="Mon profil">@if($u->avatar_path)<img src="/avatar/{{ $u->id }}?v={{ $u->updated_at->timestamp }}" alt="" style="width:100%;height:100%;object-fit:cover">@else{{ $u->initials() }}@endif</a>
             <b>{{ $u->name }}</b>
             <span>{{ $u->email }}</span><br>
             <span class="role">{{ ['admin' => 'Administrateur', 'operator' => 'Opérateur', 'client' => 'Client · niveau '.$u->kyc_level][$u->role] }}</span>
@@ -31,10 +31,12 @@
         @if($u->isStaff())
             <a class="nav {{ request()->is('admin') ? 'on' : '' }}" href="/admin">File de validation</a>
             <a class="nav {{ request()->is('admin/commandes*') ? 'on' : '' }}" href="/admin/commandes">Commandes</a>
-            <a class="nav {{ request()->is('admin/clients*') ? 'on' : '' }}" href="/admin/clients">Clients et vérification</a>
+            <a class="nav {{ request()->is('admin/clients*') ? 'on' : '' }}" href="/admin/clients">Clients</a>
+            <a class="nav {{ request()->is('admin/verifications*') ? 'on' : '' }}" href="/admin/verifications">Vérifications d'identité @php($pk = \App\Models\KycSubmission::where('status', 'pending')->count())@if($pk)<span class="pill wait xs">{{ $pk }}</span>@endif</a>
             @if($u->isAdmin())
                 <a class="nav {{ request()->is('admin/frais*') ? 'on' : '' }}" href="/admin/frais">Frais et minimums</a>
                 <a class="nav {{ request()->is('admin/comptes*') ? 'on' : '' }}" href="/admin/comptes">Comptes de réception</a>
+                <a class="nav {{ request()->is('admin/parametres*') ? 'on' : '' }}" href="/admin/parametres">Paramètres</a>
                 <a class="nav {{ request()->is('admin/audit*') ? 'on' : '' }}" href="/admin/audit">Journal d'audit</a>
             @endif
         @else
@@ -42,6 +44,7 @@
             <a class="nav {{ request()->is('echange*') ? 'on' : '' }}" href="/echange/nouveau">Échanger</a>
             <a class="nav {{ request()->is('commandes*') ? 'on' : '' }}" href="/commandes">Historique</a>
             <a class="nav {{ request()->is('moyens-de-reception*') ? 'on' : '' }}" href="/moyens-de-reception">Moyens de réception</a>
+            <a class="nav {{ request()->is('profil*') ? 'on' : '' }}" href="/profil">Mon profil @if(! $u->phone_verified_at)<span class="pill wait xs">!</span>@endif</a>
         @endif
             <a class="nav {{ request()->is('notifications*') ? 'on' : '' }}" href="/notifications">Notifications @if($unread)<span class="pill bad xs">{{ $unread }}</span>@endif</a>
         </nav>

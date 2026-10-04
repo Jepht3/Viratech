@@ -6,12 +6,15 @@ import '../core/config.dart';
 import '../core/format.dart';
 import '../core/theme.dart';
 import '../features/admin.dart';
+import '../features/admin_extras.dart';
+import '../features/profile.dart';
 import '../features/client.dart';
 import '../features/notifications.dart';
 import '../features/settings.dart';
 import '../features/update.dart';
 import '../services/api.dart';
 import '../services/session.dart';
+import 'widgets.dart';
 
 class NavItem {
   const NavItem(this.label, this.icon, this.page, {this.bottom = false, this.adminOnly = false});
@@ -40,8 +43,11 @@ List<NavItem> navItems() {
       NavItem('File de validation', Icons.checklist_rounded, () => const QueueScreen(), bottom: true),
       NavItem('Commandes', Icons.receipt_long_rounded, () => const AdminOrdersScreen(), bottom: true),
       NavItem('Clients', Icons.people_alt_rounded, () => const ClientsScreen(), bottom: true),
+      NavItem('Vérifications', Icons.verified_user_rounded, () => const VerificationsScreen()),
       NavItem('Frais et minimums', Icons.percent_rounded, () => const FeesScreen(), adminOnly: true),
       NavItem('Comptes de réception', Icons.account_balance_wallet_rounded, () => const AccountsScreen(), adminOnly: true),
+      NavItem('Intégrations', Icons.hub_rounded, () => const IntegrationsScreen(), adminOnly: true),
+      NavItem('Mon profil', Icons.person_rounded, () => const ProfileScreen()),
       NavItem('Notifications', Icons.notifications_rounded, () => const NotificationsScreen()),
       NavItem('Paramètres', Icons.settings_rounded, () => const SettingsScreen()),
     ];
@@ -51,6 +57,7 @@ List<NavItem> navItems() {
     NavItem('Échanger', Icons.swap_horiz_rounded, () => const NewOrderScreen(), bottom: true),
     NavItem('Historique', Icons.receipt_long_rounded, () => const OrdersScreen(), bottom: true),
     NavItem('Moyens de réception', Icons.account_balance_rounded, () => const MethodsScreen()),
+    NavItem('Mon profil', Icons.person_rounded, () => const ProfileScreen()),
     NavItem('Notifications', Icons.notifications_rounded, () => const NotificationsScreen()),
     NavItem('Paramètres', Icons.settings_rounded, () => const SettingsScreen()),
   ];
@@ -200,7 +207,6 @@ class _AppShellState extends State<AppShell> {
   /// Menu latéral qui se glisse depuis la gauche : profil, navigation, calendrier, déconnexion.
   Widget _drawer(Map<String, dynamic> u) {
     final name = '${u['name']}';
-    final initials = name.trim().split(RegExp(r'\s+')).take(2).map((p) => p.isEmpty ? '' : p[0].toUpperCase()).join();
     final role = {'admin': 'Administrateur', 'operator': 'Opérateur'}['${u['role']}'] ?? 'Client · niveau ${u['kyc_level']}';
     return Drawer(
       width: 300,
@@ -213,13 +219,10 @@ class _AppShellState extends State<AppShell> {
             padding: const EdgeInsets.fromLTRB(18, 24, 18, 20),
             decoration: const BoxDecoration(color: VT.teal, borderRadius: BorderRadius.only(topRight: Radius.circular(32), bottomRight: Radius.circular(32))),
             child: Column(children: [
-              Container(
-                width: 68,
-                height: 68,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(color: const Color(0xFF0A5F36), shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 3)),
-                child: Text(initials, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700)),
-              ),
+              GestureDetector(onTap: () {
+                Navigator.of(context).pop();
+                _goLabel('Mon profil');
+              }, child: Avatar(user: u, size: 68)),
               const SizedBox(height: 10),
               Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
               Text('${u['email']}', style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 11.5)),

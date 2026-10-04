@@ -52,6 +52,15 @@ class Api {
     return _send('POST', path, data: form);
   }
 
+  /// Envoi multipart de plusieurs fichiers (photos d'identité) : $files = {nom du champ: chemin}.
+  Future<dynamic> uploadFiles(String path, Map<String, dynamic> fields, Map<String, String> files) async {
+    final form = FormData.fromMap({
+      ...fields,
+      for (final e in files.entries) e.key: await MultipartFile.fromFile(e.value),
+    });
+    return _send('POST', path, data: form);
+  }
+
   Future<dynamic> _send(String method, String path, {Object? data, Map<String, dynamic>? query}) async {
     try {
       final r = await _dio.request<dynamic>(

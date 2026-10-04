@@ -32,7 +32,7 @@ class QueueScreen extends StatelessWidget {
             children: [
               StatTile(title: 'Volume du jour', value: money(n(d['volume_today']), decimals: 0), footer: "Commandes créées aujourd'hui", color: VT.teal, icon: Icons.attach_money),
               StatTile(title: "Frais encaissés aujourd'hui", value: money(n(d['fees_today'])), footer: 'Commandes terminées', color: VT.accent, icon: Icons.percent_rounded, dark: false),
-              StatTile(title: 'Délai moyen de traitement', value: d['avg_minutes'] == null ? '—' : '${d['avg_minutes']} min', footer: 'Dernières commandes', color: VT.teal, icon: Icons.timer_outlined),
+              StatTile(title: 'Délai moyen de traitement', value: d['avg_minutes'] == null ? '—' : '${d['avg_minutes']} min', footer: 'Dernières commandes', color: VT.orange, icon: Icons.timer_outlined, dark: false),
               StatTile(title: 'Commandes en cours', value: '${active.length}', footer: 'À traiter', color: VT.navy, icon: Icons.list_alt_rounded),
             ],
           ),

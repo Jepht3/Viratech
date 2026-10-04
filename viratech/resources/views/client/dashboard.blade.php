@@ -9,9 +9,9 @@
 @section('content')
 @php $limit = $user->monthlyLimit(); @endphp
 <div class="grid g4">
-    <div class="tile teal"><span class="ic">$</span><div><div class="t">À recevoir (en cours)</div><div class="v num">{{ number_format($toReceive, 2, ',', ' ') }} $</div></div><div class="f"><span>{{ $activeCount }} commande(s) en cours</span><a href="/commandes">→</a></div></div>
-    <div class="tile amber"><span class="ic">✓</span><div><div class="t">Reçu ce mois</div><div class="v num">{{ number_format($receivedMonth, 2, ',', ' ') }} $</div></div><div class="f"><span>Commandes terminées</span><a href="/commandes">→</a></div></div>
-    <div class="tile teal"><span class="ic">◎</span><div><div class="t">Plafond mensuel</div><div class="v num">{{ $limit ? number_format($usedMonth, 0, ',', ' ').' / '.number_format($limit, 0, ',', ' ').' $' : 'Sur mesure' }}</div></div><div class="f"><span>Niveau de vérification {{ $user->kyc_level }}</span></div></div>
+    <div class="tile green"><span class="ic">$</span><div><div class="t">À recevoir (en cours)</div><div class="v num">{{ number_format($toReceive, 2, ',', ' ') }} $</div></div><div class="f"><span>{{ $activeCount }} commande(s) en cours</span><a href="/commandes">→</a></div></div>
+    <div class="tile cyan"><span class="ic">✓</span><div><div class="t">Reçu ce mois</div><div class="v num">{{ number_format($receivedMonth, 2, ',', ' ') }} $</div></div><div class="f"><span>Commandes terminées</span><a href="/commandes">→</a></div></div>
+    <div class="tile amber"><span class="ic">◎</span><div><div class="t">Plafond mensuel</div><div class="v num">{{ $limit ? number_format($usedMonth, 0, ',', ' ').' / '.number_format($limit, 0, ',', ' ').' $' : 'Sur mesure' }}</div></div><div class="f"><span>Niveau de vérification {{ $user->kyc_level }}</span></div></div>
     <div class="tile navy"><span class="ic">★</span><div><div class="t">Moyens de réception</div><div class="v num">{{ $methods->count() }}</div></div><div class="f"><span>Enregistrés</span><a href="/moyens-de-reception">→</a></div></div>
 </div>
 

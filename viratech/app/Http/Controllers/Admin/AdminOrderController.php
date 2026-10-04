@@ -68,7 +68,7 @@ class AdminOrderController extends Controller
     public function step(Request $request, string $reference)
     {
         $order = Order::where('reference', $reference)->firstOrFail();
-        $data = $request->validate(['key' => 'required|string', 'reference_code' => 'nullable|string|max:120', 'file' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120']);
+        $data = $request->validate(['key' => 'required|string', 'reference_code' => 'nullable|string|max:120', 'file' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:8192']);
 
         try {
             $this->workflow->complete($order, $data['key'], 'operator', $request->user(), $data['reference_code'] ?? null, $request->file('file')?->store('proofs'));
@@ -102,6 +102,39 @@ class AdminOrderController extends Controller
         return back()->with('ok', 'Commande refusée.');
     }
 
+    /** Verse l'argent au mobile money du client via FlexPay (opération inverse). */
+    public function flexpayPayout(Request $request, string $reference)
+    {
+        $order = Order::where('reference', $reference)->firstOrFail();
+        try {
+            $this->workflow->payoutViaFlexpay($order, $request->user());
+        } catch (InvalidArgumentException $e) {
+            return back()->withErrors(['reference_code' => $e->getMessage()]);
+        }
+
+        return back()->with('ok', 'Versement FlexPay lancé : il se confirme automatiquement.');
+    }
+
+    /** Hors ligne uniquement : simule la confirmation du versement FlexPay. */
+    public function simulatePayout(string $reference)
+    {
+        abort_unless(config('viratech.simulate_paypal'), 404);
+        $this->workflow->confirmFlexpayPayout(Order::where('reference', $reference)->firstOrFail(), trustSimulation: true);
+
+        return back()->with('ok', 'Versement FlexPay simulé (mode local).');
+    }
+
+    public function releaseHold(Request $request, string $reference)
+    {
+        $data = $request->validate(['reason' => 'required|string|max:200']);
+        try {
+            $this->workflow->releaseHold(Order::where('reference', $reference)->firstOrFail(), $request->user(), $data['reason']);
+        } catch (InvalidArgumentException $e) {
+            return back()->withErrors(['reference_code' => $e->getMessage()]);
+        }
+
+        return back()->with('ok', 'Délai de sécurité levé.');
+    }
     private function guard(callable $fn): void
     {
         try {

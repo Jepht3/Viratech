@@ -32,10 +32,10 @@
             </select>
         </div>
         <div id="modeBox">
-            <label>Comment payer sur PayPal</label>
-            <select name="deposit_mode"><option value="invoice">Facture PayPal au montant exact (recommandé)</option><option value="account">Envoyer à notre compte PayPal</option></select>
+            <label>Comment voulez-vous payer ?</label>
+            <select name="payment_method" id="payment"></select>
+            <div class="xs mut" id="payHelp" style="margin-top:6px"></div>
         </div>
-
         <label>Où voulez-vous recevoir l'argent ?</label>
         <select name="payout_method_id" id="payout" required>
             @foreach($methods as $m)
@@ -74,8 +74,8 @@ function current() { return f.querySelector('input[name=corridor]:checked'); }
 function refresh() {
     const c = current(); if (!c) return;
     const withdraw = c.dataset.withdraw === '1';
-    $('modeBox').style.display = withdraw ? '' : 'none';
     $('sourceBox').style.display = withdraw ? 'none' : '';
+    fillPayment(withdraw);
     const src = $('source'); [...src.options].forEach(o => { const ok = c.dataset.source === 'equity' ? o.value === 'equity' : o.value !== 'equity'; o.hidden = !ok; o.disabled = !ok; });
     if (src.selectedOptions[0]?.disabled) src.value = [...src.options].find(o => !o.disabled).value;
     const allowed = kindsBy[c.dataset.target] || [], sel = $('payout'); let first = null;
@@ -84,6 +84,21 @@ function refresh() {
     $('noMethod').hidden = !!first; $('go').disabled = !first;
     amount.min = c.dataset.min; amount.placeholder = c.dataset.min + '.00';
     quote();
+}
+
+const PAY = {
+  paypal_invoice: ['Facture PayPal au montant exact (recommandé)', 'Vous payez la facture : le paiement est détecté automatiquement.'],
+  paypal_account: ['Envoyer à notre compte PayPal', 'Vous envoyez à notre PayPal puis joignez la capture de votre paiement (obligatoire).'],
+  transfer: ['Virement direct à notre compte', 'Vous envoyez à notre compte puis joignez la capture de votre paiement (obligatoire).'],
+  flexpay_mobile: ['Mobile money (FlexPay)', 'Vous validez sur votre téléphone avec votre code : confirmé automatiquement, sans capture.'],
+  flexpay_card: ['Carte Visa (FlexPay)', 'Vous payez sur la page sécurisée FlexPay : confirmé automatiquement, sans capture.']
+};
+function fillPayment(withdraw) {
+  const keys = withdraw ? ['paypal_invoice', 'paypal_account'] : ['transfer', 'flexpay_mobile', 'flexpay_card'];
+  const sel = $('payment'), keep = sel.value;
+  sel.innerHTML = keys.map(k => '<option value="' + k + '">' + PAY[k][0] + '</option>').join('');
+  if (keys.includes(keep)) sel.value = keep;
+  $('payHelp').textContent = PAY[sel.value][1];
 }
 
 function quote() {
@@ -101,6 +116,7 @@ function quote() {
 
 f.addEventListener('change', e => e.target.name === 'corridor' ? refresh() : null);
 amount.addEventListener('input', quote);
+$('payment').addEventListener('change', () => $('payHelp').textContent = PAY[$('payment').value][1]);
 refresh();
 </script>
 @endpush

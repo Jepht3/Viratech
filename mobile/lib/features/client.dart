@@ -43,8 +43,9 @@ class DashboardScreen extends StatelessWidget {
               StatTile(
                   title: 'Plafond mensuel',
                   value: limit == null ? 'Sur mesure' : '${money(n(d['used_month']), decimals: 0).replaceAll(' \$', '')} / ${money(n(limit), decimals: 0)}',
-                  footer: 'Niveau de vérification ${session.user?['kyc_level']}',
-                  color: VT.teal,
+                  footer: (d['limit'] as Map?)?['next'] != null ? 'Encore ${(d['limit'] as Map)['next']['orders_needed']} échange(s) pour monter' : 'Niveau de vérification ${session.user?['kyc_level']}',
+                  color: VT.orange,
+                  dark: false,
                   icon: Icons.speed_rounded),
               StatTile(title: 'Total échangé', value: money(n(d['total_exchanged']), decimals: 0), footer: '${d['completed_count']} commande(s) terminée(s)', color: VT.navy, icon: Icons.trending_up_rounded),
             ],
@@ -124,7 +125,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   String? code;
   final _amount = TextEditingController();
   String source = 'mpesa';
-  String depositMode = 'invoice';
+  String paymentMethod = 'paypal_invoice';
   int? methodId;
   Map<String, dynamic>? quote;
   String? quoteError;
@@ -163,6 +164,16 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
     if (mounted) setState(() => loading = false);
   }
 
+  static const _paymentOptions = {
+    'paypal_invoice': ['Facture PayPal au montant exact', 'Vous payez la facture : détecté automatiquement, sans capture.'],
+    'paypal_account': ['Envoyer à notre compte PayPal', 'Vous envoyez à notre PayPal puis joignez la capture (obligatoire).'],
+    'transfer': ['Virement direct à notre compte', 'Vous envoyez à notre compte puis joignez la capture (obligatoire).'],
+    'flexpay_mobile': ['Mobile money (FlexPay)', 'Vous validez sur votre téléphone : confirmé automatiquement, sans capture.'],
+    'flexpay_card': ['Carte Visa (FlexPay)', 'Vous payez sur la page sécurisée FlexPay : confirmé automatiquement.'],
+  };
+
+  List<String> get _allowedPayments => corridor?['is_withdrawal'] == true ? ['paypal_invoice', 'paypal_account'] : ['transfer', 'flexpay_mobile', 'flexpay_card'];
+
   Map<String, dynamic>? get corridor => corridors.where((c) => c['code'] == code).firstOrNull;
 
   List<Map<String, dynamic>> get eligibleMethods {
@@ -176,6 +187,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
     final el = eligibleMethods;
     if (!el.any((m) => m['id'] == methodId)) methodId = el.isEmpty ? null : (el.first['id'] as num).toInt();
     if (!sources.contains(source)) source = sources.first;
+    if (!_allowedPayments.contains(paymentMethod)) paymentMethod = _allowedPayments.first;
   }
 
   void _onAmount() {
@@ -218,7 +230,8 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
         'corridor': code,
         'amount': double.parse(_amount.text.replaceAll(',', '.')),
         'payout_method_id': methodId,
-        if (c['is_withdrawal'] == true) 'deposit_mode': depositMode else 'source_kind': source,
+        'payment_method': paymentMethod,
+        if (c['is_withdrawal'] != true) 'source_kind': source,
       });
       if (!mounted) return;
       _amount.clear();
@@ -257,17 +270,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
             decoration: InputDecoration(labelText: 'Montant envoyé (USD)', hintText: c == null ? '' : '${n(c['min_amount']).toInt()}.00', suffixText: '\$'),
           ),
           const SizedBox(height: 14),
-          if (c != null && c['is_withdrawal'] == true)
-            DropdownButtonFormField<String>(
-              initialValue: depositMode,
-              decoration: const InputDecoration(labelText: 'Comment payer sur PayPal'),
-              items: const [
-                DropdownMenuItem(value: 'invoice', child: Text('Facture PayPal au montant exact')),
-                DropdownMenuItem(value: 'account', child: Text('Envoyer à notre compte PayPal')),
-              ],
-              onChanged: (v) => setState(() => depositMode = v ?? 'invoice'),
-            )
-          else if (c != null)
+          if (c != null && c['is_withdrawal'] != true) ...[
             DropdownButtonFormField<String>(
               key: ValueKey('src-$code'),
               initialValue: source,
@@ -275,7 +278,19 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
               items: [for (final s in sources) DropdownMenuItem(value: s, child: Text(_sourceLabels[s] ?? s))],
               onChanged: (v) => setState(() => source = v ?? source),
             ),
-          const SizedBox(height: 14),
+            const SizedBox(height: 14),
+          ],
+          if (c != null) ...[
+            DropdownButtonFormField<String>(
+              key: ValueKey('pay-$code'),
+              initialValue: _paymentOptions.containsKey(paymentMethod) && _allowedPayments.contains(paymentMethod) ? paymentMethod : _allowedPayments.first,
+              isExpanded: true,
+              decoration: const InputDecoration(labelText: 'Comment voulez-vous payer ?'),
+              items: [for (final k in _allowedPayments) DropdownMenuItem(value: k, child: Text(_paymentOptions[k]![0], overflow: TextOverflow.ellipsis))],
+              onChanged: (v) => setState(() => paymentMethod = v ?? _allowedPayments.first),
+            ),
+            Padding(padding: const EdgeInsets.only(top: 6), child: Text(_paymentOptions[_allowedPayments.contains(paymentMethod) ? paymentMethod : _allowedPayments.first]![1], style: const TextStyle(color: VT.mut, fontSize: 12))),
+          ],          const SizedBox(height: 14),
           if (el.isEmpty)
             Container(
               padding: const EdgeInsets.all(14),

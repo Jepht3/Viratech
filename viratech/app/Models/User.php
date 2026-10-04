@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\LimitPolicy;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -9,7 +10,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Hidden(['password', 'remember_token'])]
+#[Hidden(['password', 'remember_token', 'phone_code'])]
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
@@ -20,6 +21,8 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'phone_verified_at' => 'datetime',
+            'phone_code_expires_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
             'notify_email' => 'boolean',
@@ -47,9 +50,26 @@ class User extends Authenticatable
         return $this->hasMany(PayoutMethod::class);
     }
 
-    /** Plafond mensuel selon le niveau KYC (USD). */
+    public function kycSubmissions(): HasMany
+    {
+        return $this->hasMany(KycSubmission::class);
+    }
+
+    /** Plafond mensuel en USD (niveau de vérification + montée automatique avec les commandes terminées). */
     public function monthlyLimit(): ?float
     {
-        return [0 => 500.0, 1 => 500.0, 2 => 3000.0][$this->kyc_level] ?? null; // null = sur mesure
+        return app(LimitPolicy::class)->limit($this);
+    }
+
+    public function limitInfo(): array
+    {
+        return app(LimitPolicy::class)->describe($this);
+    }
+
+    public function initials(): string
+    {
+        $parts = preg_split('/\s+/', trim($this->name));
+
+        return mb_strtoupper(mb_substr($parts[0] ?? '?', 0, 1).(count($parts) > 1 ? mb_substr(end($parts), 0, 1) : ''));
     }
 }

@@ -2,6 +2,8 @@
 
 namespace App\Notifications;
 
+use App\Notifications\Channels\FcmChannel;
+use App\Services\FcmClient;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -18,6 +20,9 @@ class OrderUpdated extends Notification
     public function via(object $notifiable): array
     {
         $channels = ['database'];
+        if ($notifiable->notify_push && app(FcmClient::class)->configured()) {
+            $channels[] = FcmChannel::class;
+        }
         if ($notifiable->notify_email && $notifiable->email) {
             $channels[] = 'mail';
         }

@@ -15,7 +15,7 @@ class Order extends Model
         return [
             'amount' => 'decimal:2', 'percent_applied' => 'decimal:2', 'percent_fee' => 'decimal:2',
             'fixed_fee' => 'decimal:2', 'total_fee' => 'decimal:2', 'net_amount' => 'decimal:2',
-            'fees_locked_until' => 'datetime', 'expires_at' => 'datetime', 'completed_at' => 'datetime',
+            'fees_locked_until' => 'datetime', 'expires_at' => 'datetime', 'completed_at' => 'datetime', 'payout_not_before' => 'datetime',
         ];
     }
 

@@ -124,13 +124,13 @@ class AdminApiController extends Controller
         $data = $request->validate([
             'min_amount' => 'required|numeric|min:0', 'fixed_fee' => 'required|numeric|min:0',
             'eta_min_minutes' => 'required|integer|min:1', 'eta_max_minutes' => 'required|integer|gte:eta_min_minutes',
-            'is_active' => 'nullable|boolean', 'tiers' => 'required|array|min:1',
+            'is_active' => 'nullable|boolean', 'hold_minutes' => 'nullable|integer|min:0|max:259200', 'tiers' => 'required|array|min:1',
             'tiers.*.min_amount' => 'required|numeric|min:0', 'tiers.*.percent' => 'required|numeric|min:0|max:100',
         ]);
         $old = ['min' => $corridor->min_amount, 'fixed' => $corridor->fixed_fee, 'tiers' => $corridor->tiers->map->only('min_amount', 'percent')->all()];
         $corridor->update([
             'min_amount' => $data['min_amount'], 'fixed_fee' => $data['fixed_fee'], 'eta_min_minutes' => $data['eta_min_minutes'],
-            'eta_max_minutes' => $data['eta_max_minutes'], 'is_active' => $corridor->coming_soon ? false : (bool) ($data['is_active'] ?? $corridor->is_active),
+            'eta_max_minutes' => $data['eta_max_minutes'], 'hold_minutes' => $data['hold_minutes'] ?? $corridor->hold_minutes, 'is_active' => $corridor->coming_soon ? false : (bool) ($data['is_active'] ?? $corridor->is_active),
         ]);
         $corridor->tiers()->delete();
         foreach ($data['tiers'] as $t) {

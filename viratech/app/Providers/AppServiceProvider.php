@@ -2,20 +2,41 @@
 
 namespace App\Providers;
 
+use App\Models\Setting;
+use App\Services\FlexpayGateway;
+use App\Services\HttpFlexpayGateway;
+use App\Services\LocalFlexpayGateway;
 use App\Services\LocalPaypalGateway;
+use App\Services\LogSmsSender;
 use App\Services\PaypalGateway;
+use App\Services\SmsSender;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        // Hors ligne : facture PayPal simulée. La passerelle réelle (API PayPal Business) la remplacera en phase 2.
+        // Hors ligne : factures PayPal, paiements FlexPay et SMS simulés. Les passerelles réelles les remplacent quand elles sont activées.
         $this->app->bind(PaypalGateway::class, LocalPaypalGateway::class);
+        $this->app->bind(FlexpayGateway::class, fn () => Setting::bool('flexpay.enabled') ? new HttpFlexpayGateway : new LocalFlexpayGateway);
+        $this->app->bind(SmsSender::class, LogSmsSender::class);
     }
 
     public function boot(): void
     {
-        //
+        // Emails : si l'administrateur a saisi la clé Resend dans les paramètres, elle remplace le réglage du fichier .env.
+        {
+            $key = Setting::get('mail.resend_key');
+            if ($key) {
+                config([
+                    'mail.default' => 'resend',
+                    'mail.mailers.resend' => ['transport' => 'resend'],
+                    'services.resend.key' => $key,
+                ]);
+            }
+            if ($from = Setting::get('mail.from_address')) {
+                config(['mail.from.address' => $from, 'mail.from.name' => Setting::get('mail.from_name', 'Viratech')]);
+            }
+        }
     }
 }

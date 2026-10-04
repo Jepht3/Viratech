@@ -4,9 +4,9 @@
 
 @section('content')
 <div class="grid g4">
-    <div class="tile teal"><span class="ic">$</span><div><div class="t">Volume du jour</div><div class="v num">{{ number_format($volumeToday, 0, ',', ' ') }} $</div></div><div class="f"><span>Commandes créées aujourd'hui</span></div></div>
-    <div class="tile amber"><span class="ic">%</span><div><div class="t">Frais encaissés aujourd'hui</div><div class="v num">{{ number_format($feesToday, 2, ',', ' ') }} $</div></div><div class="f"><span>Commandes terminées</span></div></div>
-    <div class="tile teal"><span class="ic">⏱</span><div><div class="t">Délai moyen de traitement</div><div class="v num">{{ $avgMinutes !== null ? $avgMinutes.' min' : '—' }}</div></div><div class="f"><span>Sur les dernières commandes</span></div></div>
+    <div class="tile green"><span class="ic">$</span><div><div class="t">Volume du jour</div><div class="v num">{{ number_format($volumeToday, 0, ',', ' ') }} $</div></div><div class="f"><span>Commandes créées aujourd'hui</span></div></div>
+    <div class="tile cyan"><span class="ic">%</span><div><div class="t">Frais encaissés aujourd'hui</div><div class="v num">{{ number_format($feesToday, 2, ',', ' ') }} $</div></div><div class="f"><span>Commandes terminées</span></div></div>
+    <div class="tile amber"><span class="ic">⏱</span><div><div class="t">Délai moyen de traitement</div><div class="v num">{{ $avgMinutes !== null ? $avgMinutes.' min' : '—' }}</div></div><div class="f"><span>Sur les dernières commandes</span></div></div>
     <div class="tile navy"><span class="ic">☰</span><div><div class="t">Commandes en cours</div><div class="v num">{{ $active->count() }}</div></div><div class="f"><span>À traiter</span><a href="/admin/commandes?statut=active">→</a></div></div>
 </div>
 

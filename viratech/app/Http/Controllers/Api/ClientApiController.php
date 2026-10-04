@@ -37,6 +37,7 @@ class ClientApiController extends Controller
             'received_month' => (float) $orders->where('status', 'completed')->where('completed_at', '>=', $month)->sum('net_amount'),
             'used_month' => (float) $orders->whereIn('status', ['active', 'completed'])->where('created_at', '>=', $month)->sum('amount'),
             'monthly_limit' => $user->monthlyLimit(),
+            'limit' => $user->limitInfo(),
             'active_count' => $orders->where('status', 'active')->count(),
             'total_exchanged' => (float) $orders->where('status', 'completed')->sum('amount'),
             'completed_count' => $orders->where('status', 'completed')->count(),
@@ -102,11 +103,14 @@ class ClientApiController extends Controller
     {
         $data = $request->validate([
             'corridor' => 'required|exists:corridors,code', 'amount' => 'required|numeric|min:0', 'payout_method_id' => 'required|integer',
-            'source_kind' => 'nullable|in:mpesa,airtel,orange,afrimoney,equity', 'deposit_mode' => 'nullable|in:invoice,account',
+            'source_kind' => 'nullable|in:mpesa,airtel,orange,afrimoney,equity', 'payment_method' => ['nullable', Rule::in(OrderWorkflow::PAYMENT_METHODS)],
         ]);
         $user = $request->user();
         $corridor = Corridor::with('tiers')->where('code', $data['corridor'])->firstOrFail();
         $method = $user->payoutMethods()->find($data['payout_method_id']);
+        if (! $user->phone_verified_at) {
+            return response()->json(['message' => 'Vérifiez votre numéro de téléphone avant de faire un échange.', 'code' => 'phone_not_verified'], 422);
+        }
         if (! $method) {
             return response()->json(['message' => 'Choisissez un moyen de réception.'], 422);
         }
@@ -119,7 +123,7 @@ class ClientApiController extends Controller
         }
 
         try {
-            $order = $this->workflow->create($user, $corridor, $data['amount'], $method, $data['source_kind'] ?? null, $data['deposit_mode'] ?? null);
+            $order = $this->workflow->create($user, $corridor, $data['amount'], $method, $data['source_kind'] ?? null, $data['payment_method'] ?? null);
         } catch (InvalidArgumentException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
@@ -127,23 +131,36 @@ class ClientApiController extends Controller
         return response()->json(Present::order($order->fresh(), true), 201);
     }
 
+    /** Le client envoie la capture de son paiement (obligatoire pour un virement direct ou un paiement PayPal manuel). */
     public function proof(Request $request, string $reference)
     {
         $order = $this->own($request, $reference);
-        $data = $request->validate(['reference_code' => 'nullable|string|max:120', 'file' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120']);
-        $path = $request->file('file')?->store('proofs');
+        $data = $request->validate([
+            'reference_code' => 'nullable|string|max:120',
+            'file' => 'required|file|mimes:jpg,jpeg,png,webp,pdf|max:8192',
+        ], ['file.required' => 'Joignez la capture de votre paiement : elle est obligatoire.']);
 
         try {
-            if ($order->corridor->isWithdrawal()) {
-                $this->workflow->claimPayment($order, $request->user(), $data['reference_code'] ?? null, $path);
-            } else {
-                $this->workflow->complete($order, 'deposit_proof', 'client', $request->user(), $data['reference_code'] ?? null, $path);
-            }
+            $this->workflow->complete($order, 'client_payment', 'client', $request->user(), $data['reference_code'] ?? null, $request->file('file')->store('proofs'));
         } catch (InvalidArgumentException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
         return Present::order($order->fresh(), true);
+    }
+
+    /** Paiement FlexPay : mobile money (demande sur le téléphone) ou carte Visa (renvoie l'adresse de la page de paiement). */
+    public function flexpay(Request $request, string $reference)
+    {
+        $order = $this->own($request, $reference);
+        $data = $request->validate(['phone' => 'nullable|string|max:30']);
+        try {
+            $order = $this->workflow->startFlexpay($order, $data['phone'] ?? null);
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return Present::order($order, true);
     }
 
     public function simulatePayment(Request $request, string $reference)
@@ -151,14 +168,18 @@ class ClientApiController extends Controller
         abort_unless(config('viratech.simulate_paypal'), 404);
         $order = $this->own($request, $reference);
         try {
-            $this->workflow->complete($order, 'payment_received', 'system', null, 'SIMULATION');
+            if (str_starts_with((string) $order->payment_method, 'flexpay')) {
+                $order = $order->flexpay_reference ? $order : $this->workflow->startFlexpay($order, $request->input('phone') ?: $request->user()->phone);
+                $this->workflow->confirmFlexpay($order, trustSimulation: true);
+            } else {
+                $this->workflow->complete($order, 'client_payment', 'system', null, 'SIMULATION');
+            }
         } catch (InvalidArgumentException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
         return Present::order($order->fresh(), true);
     }
-
     public function proofFile(Request $request, string $reference, int $proof)
     {
         $order = Order::where('reference', $reference)->firstOrFail();

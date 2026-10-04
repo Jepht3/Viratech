@@ -13,6 +13,7 @@
             <div><label>Frais fixes ($)</label><input type="number" step="0.01" name="fixed_fee" value="{{ $c->fixed_fee + 0 }}" required></div>
             <div><label>Délai min (minutes)</label><input type="number" name="eta_min_minutes" value="{{ $c->eta_min_minutes }}" required></div>
             <div><label>Délai max (minutes)</label><input type="number" name="eta_max_minutes" value="{{ $c->eta_max_minutes }}" required></div>
+            @if($c->isWithdrawal() && ! $c->coming_soon)<div style="grid-column:1/-1"><label>Délai de sécurité standard (jours) · avant tout versement</label><input type="number" step="0.5" name="hold_days" value="{{ $c->hold_minutes / 1440 }}"><div class="xs mut">Protège des litiges et rétrofacturations PayPal. Client nouveau ou non vérifié : le double. Client vérifié avec 10 échanges réussis : la moitié. 0 = aucun délai.</div></div>@endif
         </div>
         <label>Paliers de pourcentage (à partir de ... $)</label>
         @for($i = 0; $i < 4; $i++)

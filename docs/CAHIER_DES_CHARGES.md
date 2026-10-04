@@ -1,7 +1,7 @@
 # Cahier des charges — Viratech
 **Plateforme d'échange manuel PayPal / Banque / Mobile Money / Crypto pour freelances en RDC**
 
-Version 1.2 — 3 octobre 2026 — Statut : validé en grande partie, prêt pour la conception (développement local hors ligne d'abord)
+Version 1.3 — 4 octobre 2026 — Statut : validé en grande partie, prêt pour la conception (développement local hors ligne d'abord)
 
 > Les chiffres de marché et de frais ci-dessous sont des **hypothèses de travail** issues de la connaissance du secteur. Elles doivent être revérifiées (grilles tarifaires officielles M-Pesa, Airtel, Equity, PayPal, cours USDT) avant le lancement.
 
@@ -453,3 +453,59 @@ Voir 7.1 (système identique à LeWebPOS) et 7.2 (développement hors ligne d'ab
 | **3 — Mise en ligne** | Dépôt GitHub privé Viratech, GitHub Actions, serveur, sauvegardes, avis juridique et enregistrement BCC |
 | **4 — Après lancement** | Crypto (coming soon), parrainage, rapports avancés |
 
+---
+
+## 14. Compléments (v1.3, remplace 13.1 et 12.2 là où ils diffèrent)
+
+### 14.1 Étapes réelles : preuve des deux côtés
+Le client envoie **la capture de son propre paiement** ; l'équipe envoie **la capture du versement**. Même parcours pour tous les échanges :
+
+1. **Commande créée** *(système)*
+2. **Paiement du client** : il paie sur un de *nos* comptes (PayPal, mobile money, Equity) et **joint la capture de la transaction (obligatoire)**. Exceptions confirmées automatiquement, sans capture : *facture PayPal payée* et *paiement FlexPay* (mobile money ou carte Visa).
+3. **Paiement vérifié par Viratech** *(opérateur)* : l'argent est bien arrivé, le nom du payeur correspond au client.
+4. **Contrôle de sécurité** *(opérateur)* : bloqué pendant le **délai de sécurité** (voir 14.2).
+5. **Versement lancé** *(opérateur)*
+6. **Versement effectué** *(opérateur)* : **capture du versement obligatoire**, que le client retrouve dans sa commande. Alternative : « Verser via FlexPay » (mobile money), confirmé automatiquement.
+7. **Terminé** *(système)*
+
+Le client ne peut jamais valider les étapes de l'opérateur, et l'opérateur ne peut pas se substituer au client pour déclarer son paiement.
+
+### 14.2 Rapidité selon l'origine du paiement et délai de sécurité PayPal
+- **Paiements qui arrivent par mobile money, Equity ou carte Visa** : traités rapidement (5 à 30 min), sans délai de sécurité.
+- **Paiements qui arrivent par PayPal** : volontairement plus lents, car il faut s'assurer qu'aucun **litige ou rétrofacturation** n'est ouvert avant de verser.
+
+**Repères sur les délais PayPal** (recherche du 4 octobre 2026) :
+- un acheteur peut ouvrir un **litige PayPal jusqu'à 180 jours** après le paiement ;
+- une **rétrofacturation par la banque de la carte** se fait en général dans les **120 jours** (Visa, Amex, Discover), 90 à 120 jours pour Mastercard ;
+- un nouveau compte vendeur PayPal peut voir ses fonds **retenus jusqu'à 21 jours** ;
+- depuis janvier 2024, la protection vendeur PayPal ne couvre plus les rétrofacturations « article non reçu » faites auprès de la banque.
+
+**Conclusion : aucun délai court n'élimine le risque** (le seul délai 100 % sûr serait de 180 jours, inutilisable). Le délai réduit le risque, il se combine avec les plafonds, la vérification d'identité et le contrôle du nom du payeur.
+
+**Politique retenue (réglable par l'administrateur, page « Frais et minimums », champ « Délai de sécurité standard »)** :
+
+| Client | Délai avant versement |
+|---|---|
+| Nouveau, ou identité non vérifiée, ou moins de 3 échanges réussis | **14 jours** (standard × 2) |
+| Identité vérifiée, au moins 3 échanges réussis | **7 jours** (standard) |
+| Identité vérifiée, au moins 10 échanges réussis | **3,5 jours** (standard ÷ 2) |
+
+Le délai court à partir de la vérification du paiement. Seul un **administrateur** peut le lever, avec une raison obligatoire, journalisée. Cette politique est une recommandation prudente : à ajuster avec l'expérience réelle (taux de litiges observé) et un conseil juridique/financier.
+
+Mesures complémentaires recommandées : paiements en « Biens et services » uniquement (jamais « Entre proches »), refuser les payeurs dont le nom ne correspond pas au client, plafonds bas pour les nouveaux clients, ne verser que sur des comptes au nom du client.
+
+### 14.3 FlexPay (encaissement et versement)
+Voir `docs/FLEXPAY.md`. Résumé : le client peut payer par mobile money ou carte Visa via FlexPay ; l'opérateur peut verser au mobile money du client via FlexPay (opération inverse), sous réserve de l'activation du service de versement par FlexPay. Réglages (marchand, jeton, environnement, versement) dans **Paramètres** (web) ou **Intégrations** (application Admin).
+
+### 14.4 Paramètres administrables
+Dans le tableau de bord et l'application Admin (administrateur uniquement) : FlexPay ; **emails via Resend** (clé API, adresse d'envoi) ; **notifications push Google / Firebase** (identifiant du projet, compte de service JSON). Les secrets sont chiffrés en base et jamais réaffichés. L'application mobile devra recevoir le fichier `google-services.json` du projet Firebase pour recevoir les notifications push.
+
+### 14.5 Téléphone, identité, photo et plafonds
+- **Téléphone vérifié par code SMS** : obligatoire avant tout échange.
+- **Photo de profil** : enregistrée par le client (appareil photo ou galerie).
+- **Vérification d'identité** : le client prend **un selfie avec sa pièce dans la main droite et une feuille portant un code à 5 chiffres** généré par Viratech (valable 30 min), puis **la photo de la pièce** (avant, et arrière si elle existe). Prise de vue **uniquement avec l'appareil photo** dans l'application.
+- **Contre le contournement** : code éphémère (une vieille photo ne le contient pas), empreinte SHA-256 des images comparée à celles des autres comptes (photo déjà utilisée), détection d'image réutilisée, photo ancienne ou de faible résolution signalée, 3 tentatives par jour maximum, **validation manuelle obligatoire** par l'équipe (rien n'est approuvé automatiquement), photos stockées de façon privée.
+- **Plafonds mensuels** : téléphone non vérifié : 0 $ (aucun échange) · téléphone vérifié : 500 $ · identité vérifiée : 3 000 $ · sur mesure : 10 000 $ par défaut. **Montée automatique** avec les échanges terminés : ×1,5 dès 3 échanges, ×2 dès 10, ×3 dès 25 (niveaux 1 et 2). L'administrateur peut fixer un plafond à la main pour un client.
+
+### 14.6 Identité visuelle
+Couleurs du logo : vert (principal), anthracite, cyan (accent). Cartes de statistiques toutes de couleurs différentes (vert, cyan, orange, anthracite) pour ne jamais répéter la même couleur ; l'ambre reste réservé au statut « en cours ».

@@ -6,11 +6,11 @@ use App\Models\CompanyAccount;
 use App\Models\Corridor;
 use App\Models\Order;
 use App\Models\OrderProof;
-use App\Models\PayoutMethod;
 use App\Services\FeeCalculator;
 use App\Services\OrderWorkflow;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use InvalidArgumentException;
 
 class OrderController extends Controller
@@ -53,27 +53,29 @@ class OrderController extends Controller
             'amount' => 'required|numeric|min:0',
             'payout_method_id' => 'required|integer',
             'source_kind' => 'nullable|string|in:mpesa,airtel,orange,afrimoney,equity',
-            'deposit_mode' => 'nullable|in:invoice,account',
+            'payment_method' => ['nullable', Rule::in(OrderWorkflow::PAYMENT_METHODS)],
         ]);
         $user = $request->user();
         $corridor = Corridor::with('tiers')->where('code', $data['corridor'])->firstOrFail();
         $method = $user->payoutMethods()->find($data['payout_method_id']);
 
+        if (! $user->phone_verified_at) {
+            return redirect('/profil')->with('error', 'Vérifiez votre numéro de téléphone avant de faire un échange.');
+        }
         if (! $method) {
             return back()->withErrors(['payout_method_id' => 'Choisissez un moyen de réception.'])->withInput();
         }
 
-        // Plafond mensuel selon le niveau de vérification.
         $limit = $user->monthlyLimit();
         if ($limit !== null) {
             $used = $user->orders()->whereIn('status', ['active', 'completed'])->where('created_at', '>=', now()->startOfMonth())->sum('amount');
             if ($used + (float) $data['amount'] > $limit) {
-                return back()->withErrors(['amount' => 'Ce montant dépasse votre plafond mensuel de '.number_format($limit, 0, ',', ' ').' $. Faites vérifier votre identité pour l\'augmenter.'])->withInput();
+                return back()->withErrors(['amount' => 'Ce montant dépasse votre plafond mensuel de '.number_format($limit, 0, ',', ' ').' $. Faites vérifier votre identité ou faites quelques échanges réussis pour l\'augmenter.'])->withInput();
             }
         }
 
         try {
-            $order = $this->workflow->create($user, $corridor, $data['amount'], $method, $data['source_kind'] ?? null, $data['deposit_mode'] ?? null);
+            $order = $this->workflow->create($user, $corridor, $data['amount'], $method, $data['source_kind'] ?? null, $data['payment_method'] ?? null);
         } catch (InvalidArgumentException $e) {
             return back()->withErrors(['amount' => $e->getMessage()])->withInput();
         }
@@ -98,40 +100,57 @@ class OrderController extends Controller
         ]);
     }
 
-    /** Le client envoie sa preuve : signale un paiement PayPal ou valide l'étape « preuve de dépôt ». */
+    /** Le client envoie la capture de son paiement (obligatoire pour un virement direct ou un paiement PayPal manuel). */
     public function proof(Request $request, string $reference)
     {
         $order = $this->findFor($request, $reference);
-        $data = $request->validate(['reference_code' => 'nullable|string|max:120', 'file' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120']);
-        $path = $request->file('file')?->store('proofs');
-        $code = $data['reference_code'] ?? null;
+        $data = $request->validate([
+            'reference_code' => 'nullable|string|max:120',
+            'file' => 'required|file|mimes:jpg,jpeg,png,webp,pdf|max:8192',
+        ], ['file.required' => 'Joignez la capture de votre paiement : elle est obligatoire.']);
 
         try {
-            if ($order->corridor->isWithdrawal()) {
-                $this->workflow->claimPayment($order, $request->user(), $code, $path);
-            } else {
-                $this->workflow->complete($order, 'deposit_proof', 'client', $request->user(), $code, $path);
-            }
+            $this->workflow->complete($order, 'client_payment', 'client', $request->user(), $data['reference_code'] ?? null, $request->file('file')->store('proofs'));
         } catch (InvalidArgumentException $e) {
-            return back()->withErrors(['reference_code' => $e->getMessage()]);
+            return back()->withErrors(['file' => $e->getMessage()]);
         }
 
-        return back()->with('ok', 'Preuve envoyée. Un opérateur la vérifie.');
+        return back()->with('ok', 'Preuve envoyée. Un opérateur vérifie la réception de votre paiement.');
     }
 
-    /** Hors ligne uniquement : simule le paiement de la facture PayPal (remplacé par le webhook PayPal en phase 2). */
+    /** Paiement FlexPay : mobile money (demande envoyée sur le téléphone) ou carte Visa (page de paiement FlexPay). */
+    public function flexpay(Request $request, string $reference)
+    {
+        $order = $this->findFor($request, $reference);
+        $data = $request->validate(['phone' => 'nullable|string|max:30']);
+
+        try {
+            $order = $this->workflow->startFlexpay($order, $data['phone'] ?? null);
+        } catch (InvalidArgumentException $e) {
+            return back()->withErrors(['phone' => $e->getMessage()]);
+        }
+
+        return $order->flexpay_url ? redirect()->away($order->flexpay_url) : back()->with('ok', 'Demande envoyée. Confirmez le paiement sur votre téléphone avec votre code.');
+    }
+
+    /** Hors ligne uniquement : simule le paiement (facture PayPal ou FlexPay). Remplacé par les rappels automatiques en production. */
     public function simulatePayment(Request $request, string $reference)
     {
         abort_unless(config('viratech.simulate_paypal'), 404);
         $order = $this->findFor($request, $reference);
 
         try {
-            $this->workflow->complete($order, 'payment_received', 'system', null, 'SIMULATION');
+            if (str_starts_with((string) $order->payment_method, 'flexpay')) {
+                $order = $order->flexpay_reference ? $order : $this->workflow->startFlexpay($order, $request->input('phone') ?: $request->user()->phone);
+                $this->workflow->confirmFlexpay($order, trustSimulation: true);
+            } else {
+                $this->workflow->complete($order, 'client_payment', 'system', null, 'SIMULATION');
+            }
         } catch (InvalidArgumentException $e) {
-            return back()->withErrors(['reference_code' => $e->getMessage()]);
+            return back()->withErrors(['file' => $e->getMessage()]);
         }
 
-        return back()->with('ok', 'Paiement PayPal simulé (mode local).');
+        return back()->with('ok', 'Paiement simulé (mode local).');
     }
 
     /** Sert une preuve uniquement à son propriétaire ou au personnel. */

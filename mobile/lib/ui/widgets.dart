@@ -1,9 +1,12 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../core/format.dart';
 import '../core/theme.dart';
+import '../services/api.dart';
 
 /// Carte blanche arrondie (style des dashboards Viratech).
 class Panel extends StatelessWidget {
@@ -327,6 +330,86 @@ class _LinePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_LinePainter old) => old.series != series;
+}
+
+/// Photo de profil (chargée avec le jeton du compte) ou initiales.
+class Avatar extends StatefulWidget {
+  const Avatar({super.key, required this.user, this.size = 68, this.ring = true});
+  final Map<String, dynamic> user;
+  final double size;
+  final bool ring;
+
+  static final Map<String, Uint8List> _cache = {};
+
+  @override
+  State<Avatar> createState() => _AvatarState();
+}
+
+class _AvatarState extends State<Avatar> {
+  Uint8List? _bytes;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void didUpdateWidget(Avatar old) {
+    super.didUpdateWidget(old);
+    if (old.user['avatar_url'] != widget.user['avatar_url']) _load();
+  }
+
+  Future<void> _load() async {
+    final url = widget.user['avatar_url'] as String?;
+    if (url == null) {
+      setState(() => _bytes = null);
+      return;
+    }
+    if (Avatar._cache.containsKey(url)) {
+      setState(() => _bytes = Avatar._cache[url]);
+      return;
+    }
+    try {
+      final path = '/avatar/${widget.user['id']}';
+      final b = await Api.i.bytes(path);
+      Avatar._cache[url] = b;
+      if (mounted) setState(() => _bytes = b);
+    } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final name = '${widget.user['name'] ?? ''}'.trim();
+    final initials = name.split(RegExp(r'\s+')).where((p) => p.isNotEmpty).take(2).map((p) => p[0].toUpperCase()).join();
+    return Container(
+      width: widget.size,
+      height: widget.size,
+      alignment: Alignment.center,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(color: const Color(0xFF0A5F36), shape: BoxShape.circle, border: widget.ring ? Border.all(color: Colors.white, width: 3) : null),
+      child: _bytes != null ? Image.memory(_bytes!, fit: BoxFit.cover, width: widget.size, height: widget.size) : Text(initials, style: TextStyle(color: Colors.white, fontSize: widget.size * 0.32, fontWeight: FontWeight.w700)),
+    );
+  }
+}
+
+/// Prend une photo (appareil photo) ou choisit une image (galerie). Les photos d'identité utilisent uniquement l'appareil photo.
+Future<String?> pickPhoto(BuildContext context, {bool cameraOnly = false, bool front = false}) async {
+  ImageSource? source = ImageSource.camera;
+  if (!cameraOnly) {
+    source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          ListTile(leading: const Icon(Icons.photo_camera_rounded), title: const Text('Prendre une photo'), onTap: () => Navigator.pop(ctx, ImageSource.camera)),
+          ListTile(leading: const Icon(Icons.photo_library_rounded), title: const Text('Choisir dans la galerie'), onTap: () => Navigator.pop(ctx, ImageSource.gallery)),
+        ]),
+      ),
+    );
+    if (source == null) return null;
+  }
+  final x = await ImagePicker().pickImage(source: source, maxWidth: 1800, imageQuality: 85, preferredCameraDevice: front ? CameraDevice.front : CameraDevice.rear);
+  return x?.path;
 }
 
 class Loader extends StatelessWidget {

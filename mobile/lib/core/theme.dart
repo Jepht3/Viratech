@@ -6,6 +6,7 @@ class VT {
   static const navy = Color(0xFF1C2429); // anthracite du logo
   static const amber = Color(0xFFF4B350); // réservé au statut « en cours »
   static const accent = Color(0xFF14B4E0); // cyan du logo (accent de marque)
+  static const orange = Color(0xFFF2A33A); // 3e couleur de tuile (distincte du vert, du cyan et de l'anthracite)
   static const bg = Color(0xFFE2E9E5);
   static const card = Colors.white;
   static const ink = Color(0xFF1B2326);

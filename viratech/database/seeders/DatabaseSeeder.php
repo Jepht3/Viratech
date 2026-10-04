@@ -23,21 +23,27 @@ class DatabaseSeeder extends Seeder
         ]);
     }
 
-    /** Barème décidé : voir docs/CAHIER_DES_CHARGES.md §4.5. Tout est modifiable dans l'admin. */
+    /**
+     * Barème décidé : voir docs/CAHIER_DES_CHARGES.md §4.5. Tout est modifiable dans l'admin.
+     * Paiements qui arrivent par mobile money, Equity ou carte : traités rapidement. Paiements PayPal : plus lents (délai de sécurité
+     * de 7 jours par défaut, ×2 pour un client non vérifié, ÷2 pour un client très fiable) pour éviter les rétrofacturations.
+     */
     private function corridors(): void
     {
         $withdrawTiers = [[150, 10], [500, 7], [2001, 6]];
+        $day = 1440;
         $defs = [
-            ['paypal_equity', 'PayPal vers Equity', 'paypal', 'equity', 150, 0, 30, 240, $withdrawTiers, 1],
-            ['paypal_mobile', 'PayPal vers mobile money', 'paypal', 'mobile_money', 150, 2, 5, 30, $withdrawTiers, 2],
-            ['mobile_paypal', 'Mobile money vers PayPal', 'mobile_money', 'paypal', 100, 2, 30, 1440, [[100, 10]], 3],
-            ['equity_paypal', 'Equity vers PayPal', 'equity', 'paypal', 100, 0, 30, 1440, [[100, 10]], 4],
+            // code, libellé, source, cible, minimum, frais fixe, délai min, délai max (minutes), délai de sécurité (minutes), paliers, tri
+            ['paypal_equity', 'PayPal vers Equity', 'paypal', 'equity', 150, 0, 3 * $day, 14 * $day, 7 * $day, $withdrawTiers, 1],
+            ['paypal_mobile', 'PayPal vers mobile money', 'paypal', 'mobile_money', 150, 2, 3 * $day, 14 * $day, 7 * $day, $withdrawTiers, 2],
+            ['mobile_paypal', 'Mobile money vers PayPal', 'mobile_money', 'paypal', 100, 2, 5, 30, 0, [[100, 10]], 3],
+            ['equity_paypal', 'Equity vers PayPal', 'equity', 'paypal', 100, 0, 5, 30, 0, [[100, 10]], 4],
         ];
 
-        foreach ($defs as [$code, $label, $from, $to, $min, $fixed, $etaMin, $etaMax, $tiers, $sort]) {
+        foreach ($defs as [$code, $label, $from, $to, $min, $fixed, $etaMin, $etaMax, $hold, $tiers, $sort]) {
             $c = Corridor::updateOrCreate(['code' => $code], [
                 'label' => $label, 'source_kind' => $from, 'target_kind' => $to, 'min_amount' => $min,
-                'fixed_fee' => $fixed, 'eta_min_minutes' => $etaMin, 'eta_max_minutes' => $etaMax, 'sort' => $sort,
+                'fixed_fee' => $fixed, 'eta_min_minutes' => $etaMin, 'eta_max_minutes' => $etaMax, 'hold_minutes' => $hold, 'sort' => $sort,
             ]);
             $c->tiers()->delete();
             foreach ($tiers as [$tierMin, $pct]) {
@@ -50,7 +56,6 @@ class DatabaseSeeder extends Seeder
             'is_active' => false, 'coming_soon' => true, 'sort' => 9,
         ]);
     }
-
     /** Valeurs provisoires fournies par le propriétaire, à modifier dans l'admin. */
     private function companyAccounts(): void
     {
@@ -62,10 +67,10 @@ class DatabaseSeeder extends Seeder
     private function users(): void
     {
         // Comptes de test locaux (mot de passe : password). À supprimer / changer avant toute mise en ligne.
-        User::firstOrCreate(['email' => 'admin@viratech.test'], ['name' => 'Administrateur', 'role' => 'admin', 'password' => 'password', 'phone' => '+243000000001', 'kyc_level' => 3]);
-        User::firstOrCreate(['email' => 'operateur@viratech.test'], ['name' => 'Opérateur', 'role' => 'operator', 'password' => 'password', 'phone' => '+243000000002', 'kyc_level' => 3]);
+        User::firstOrCreate(['email' => 'admin@viratech.test'], ['name' => 'Administrateur', 'role' => 'admin', 'password' => 'password', 'phone' => '+243000000001', 'kyc_level' => 3, 'phone_verified_at' => now()]);
+        User::firstOrCreate(['email' => 'operateur@viratech.test'], ['name' => 'Opérateur', 'role' => 'operator', 'password' => 'password', 'phone' => '+243000000002', 'kyc_level' => 3, 'phone_verified_at' => now()]);
 
-        $client = User::firstOrCreate(['email' => 'client@viratech.test'], ['name' => 'Jean Freelance', 'role' => 'client', 'password' => 'password', 'phone' => '+243810000000', 'kyc_level' => 1]);
+        $client = User::firstOrCreate(['email' => 'client@viratech.test'], ['name' => 'Jean Freelance', 'role' => 'client', 'password' => 'password', 'phone' => '+243810000000', 'kyc_level' => 1, 'phone_verified_at' => now()]);
         $client->payoutMethods()->firstOrCreate(['kind' => 'equity'], ['label' => 'Mon compte Equity', 'account_value' => '1234567890123456', 'holder_name' => 'Jean Freelance', 'is_verified' => true]);
         $client->payoutMethods()->firstOrCreate(['kind' => 'mpesa'], ['label' => 'M-Pesa', 'account_value' => '+243810000000', 'holder_name' => 'Jean Freelance', 'is_verified' => true]);
         $client->payoutMethods()->firstOrCreate(['kind' => 'paypal'], ['label' => 'Mon PayPal', 'account_value' => 'jean.freelance@example.com', 'holder_name' => 'Jean Freelance', 'is_verified' => true]);

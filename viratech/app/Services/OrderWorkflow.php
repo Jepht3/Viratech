@@ -24,10 +24,27 @@ class OrderWorkflow
     public const FEES_LOCK_MINUTES = 20;
     public const FIRST_ACTION_MINUTES = 30;
 
-    public function __construct(private FeeCalculator $fees, private PaypalGateway $paypal) {}
+    public const PAYMENT_METHODS = ['paypal_invoice', 'paypal_account', 'transfer', 'flexpay_mobile', 'flexpay_card'];
 
-    public function create(User $user, Corridor $corridor, string|float $amount, PayoutMethod $method, ?string $sourceKind = null, ?string $depositMode = null): Order
+    public function __construct(private FeeCalculator $fees, private PaypalGateway $paypal, private FlexpayGateway $flexpay, private HoldPolicy $hold) {}
+
+    /** Façons de payer autorisées selon l'échange : PayPal en source = facture ou compte ; sinon virement direct ou FlexPay (mobile money / carte Visa). */
+    public static function allowedPayment(Corridor $c): array
     {
+        return $c->isWithdrawal() ? ['paypal_invoice', 'paypal_account'] : ['transfer', 'flexpay_mobile', 'flexpay_card'];
+    }
+
+    public function create(User $user, Corridor $corridor, string|float $amount, PayoutMethod $method, ?string $sourceKind = null, ?string $paymentMethod = null): Order
+    {
+        $paymentMethod = ['invoice' => 'paypal_invoice', 'account' => 'paypal_account'][$paymentMethod] ?? $paymentMethod;
+        $allowedPayment = self::allowedPayment($corridor);
+        $paymentMethod = $paymentMethod ?: $allowedPayment[0];
+        if (! in_array($paymentMethod, $allowedPayment, true)) {
+            throw new InvalidArgumentException('Cette façon de payer n\'est pas disponible pour cet échange.');
+        }
+        if (! $user->phone_verified_at) {
+            throw new InvalidArgumentException('Vérifiez votre numéro de téléphone avant de faire un échange.');
+        }
         if (! $corridor->is_active || $corridor->coming_soon) {
             throw new InvalidArgumentException('Ce type d\'échange n\'est pas disponible pour le moment.');
         }
@@ -44,7 +61,7 @@ class OrderWorkflow
         $corridor->loadMissing('tiers');
         $quote = $this->fees->quote($corridor, $amount);
 
-        $order = DB::transaction(function () use ($user, $corridor, $quote, $method, $sourceKind, $depositMode) {
+        $order = DB::transaction(function () use ($user, $corridor, $quote, $method, $sourceKind, $paymentMethod) {
             $order = Order::create([
                 'reference' => $this->newReference(),
                 'user_id' => $user->id,
@@ -61,19 +78,20 @@ class OrderWorkflow
                 'payout_account' => $method->account_value,
                 'payout_holder' => $method->holder_name,
                 'source_kind' => $corridor->isWithdrawal() ? 'paypal' : $sourceKind,
-                'deposit_mode' => $corridor->isWithdrawal() ? ($depositMode ?: 'invoice') : null,
+                'deposit_mode' => $corridor->isWithdrawal() ? ($paymentMethod === 'paypal_invoice' ? 'invoice' : 'account') : null,
+                'payment_method' => $paymentMethod,
                 'fees_locked_until' => now()->addMinutes(self::FEES_LOCK_MINUTES),
                 'expires_at' => now()->addMinutes(self::FIRST_ACTION_MINUTES),
             ]);
 
-            foreach (OrderSteps::forWithdrawal($corridor->isWithdrawal()) as $i => $d) {
+            foreach (OrderSteps::forCorridor($corridor->isWithdrawal()) as $i => $d) {
                 $order->steps()->create([
                     'position' => $i + 1, 'key' => $d['key'], 'label' => $d['label'],
-                    'pending_label' => $d['pending'], 'actor' => $d['actor'],
+                    'pending_label' => $d['key'] === 'client_payment' ? OrderSteps::clientPaymentPending($paymentMethod) : $d['pending'], 'actor' => $d['actor'],
                 ]);
             }
 
-            if ($order->deposit_mode === 'invoice') {
+            if ($paymentMethod === 'paypal_invoice') {
                 $order->update(['paypal_invoice_id' => $this->paypal->createInvoice($order)['id']]);
             }
 
@@ -90,7 +108,11 @@ class OrderWorkflow
         return $order;
     }
 
-    /** Valide l'étape en cours. $actor : system | client | operator. */
+    /**
+     * Valide l'étape en cours. $actor : system | client | operator.
+     * Les étapes « avec preuve » (paiement du client, versement de l'opérateur) exigent une capture, sauf quand l'événement
+     * vient du système (facture PayPal payée, paiement FlexPay confirmé).
+     */
     public function complete(Order $order, string $key, string $actor, ?User $by = null, ?string $reference = null, ?string $proofPath = null): Order
     {
         $order->loadMissing('steps', 'corridor', 'user');
@@ -106,23 +128,31 @@ class OrderWorkflow
             throw new InvalidArgumentException('L\'étape est bloquée : levez d\'abord le blocage.');
         }
         $allowed = match ($step->actor) {
-            'operator' => ['operator'],
-            'client' => ['client'],
+            'operator' => ($key === 'payout_done' && $order->payout_via === 'flexpay') ? ['operator', 'system'] : ['operator'],
+            'client' => ['client', 'system'],
             default => ['system', 'operator'],
         };
         if (! in_array($actor, $allowed, true)) {
             throw new InvalidArgumentException('Vous ne pouvez pas valider cette étape.');
         }
+        if (in_array($key, ['security_check', 'payout_in_progress', 'payout_done'], true) && $order->payout_not_before?->isFuture()) {
+            throw new InvalidArgumentException('Délai de sécurité en cours jusqu\'au '.$order->payout_not_before->format('d/m/Y H:i').' : on vérifie qu\'aucun litige ou rétrofacturation n\'est ouvert avant de verser.');
+        }
         $def = OrderSteps::definition($order->corridor->isWithdrawal(), $key);
-        if (($def['needs'] ?? null) === 'reference' && blank($reference) && blank($proofPath)) {
-            throw new InvalidArgumentException('Une référence de transaction ou une preuve est obligatoire pour cette étape.');
+        if (($def['needs'] ?? null) === 'proof' && $actor !== 'system' && blank($proofPath)) {
+            throw new InvalidArgumentException($key === 'client_payment'
+                ? 'Joignez la capture de votre paiement : elle est obligatoire.'
+                : 'Joignez la capture du versement : elle est obligatoire et sera envoyée au client.');
+        }
+        if ($key === 'client_payment' && $actor === 'client' && in_array($order->payment_method, ['paypal_invoice', 'flexpay_mobile', 'flexpay_card'], true)) {
+            throw new InvalidArgumentException('Ce paiement est confirmé automatiquement : suivez les instructions de paiement.');
         }
 
         DB::transaction(function () use ($order, $step, $actor, $by, $reference, $proofPath) {
             if ($reference || $proofPath) {
                 OrderProof::create([
                     'order_id' => $order->id,
-                    'kind' => in_array($step->key, ['payout_done', 'paypal_sent'], true) ? 'operator_payout' : 'client_payment',
+                    'kind' => $step->key === 'payout_done' ? 'operator_payout' : 'client_payment',
                     'reference' => $reference, 'path' => $proofPath, 'uploaded_by' => $by?->id,
                 ]);
             }
@@ -133,11 +163,8 @@ class OrderWorkflow
             }
 
             match ($step->key) {
-                'payment_received' => $this->ledgerIntake($order, $order->corridor->isWithdrawal() ? 'paypal' : $order->source_kind),
-                'deposit_proof' => null,
-                'deposit_verified' => $this->ledgerIntake($order, $order->source_kind),
+                'payment_verified' => $this->afterPaymentVerified($order),
                 'payout_done' => $this->ledgerPayout($order, $order->payout_kind),
-                'paypal_sent' => $this->ledgerPayout($order, 'paypal'),
                 default => null,
             };
 
@@ -156,19 +183,105 @@ class OrderWorkflow
         return $order;
     }
 
-    /** Le client signale avoir payé sur PayPal (mode « compte affiché ») : l'opérateur confirme ensuite. */
-    public function claimPayment(Order $order, User $client, ?string $reference, ?string $proofPath): void
+
+    /** Fonds bien reçus : on les inscrit en comptabilité puis on démarre le délai de sécurité (paiements PayPal). */
+    private function afterPaymentVerified(Order $order): void
     {
-        if (blank($reference) && blank($proofPath)) {
-            throw new InvalidArgumentException('Indiquez l\'identifiant de transaction PayPal ou joignez une capture.');
+        $this->ledgerIntake($order, $this->intakeChannel($order));
+        $minutes = $this->hold->minutes($order);
+        if ($minutes > 0) {
+            $until = now()->addMinutes($minutes);
+            $order->update(['payout_not_before' => $until]);
+            $order->steps()->where('key', 'security_check')->update(['note' => 'Délai de sécurité jusqu\'au '.$until->format('d/m/Y')]);
         }
-        OrderProof::create(['order_id' => $order->id, 'kind' => 'client_payment', 'reference' => $reference, 'path' => $proofPath, 'uploaded_by' => $client->id]);
-        $order->steps()->where('key', 'payment_received')->where('status', 'pending')->update(['note' => 'Paiement signalé par le client'.($reference ? ' · '.$reference : '')]);
-        $order->update(['paypal_transaction_id' => $reference ?: $order->paypal_transaction_id]);
-        $this->tellStaff($order, 'Paiement signalé', $client->name.' indique avoir payé '.$order->amount.' $ sur PayPal. À vérifier.');
-        $this->tell($client, $order, 'Paiement signalé', 'Merci, nous vérifions la réception de votre paiement PayPal.');
     }
 
+    /** Verse l'argent au mobile money du client via FlexPay (opération inverse), au lieu d'un versement manuel avec capture. */
+    public function payoutViaFlexpay(Order $order, User $operator): Order
+    {
+        $order->loadMissing('steps', 'corridor', 'user');
+        if (! $order->isActive() || $order->currentStep()?->key !== 'payout_done') {
+            throw new InvalidArgumentException('Le versement n\'est pas encore à faire pour cette commande.');
+        }
+        if ($order->corridor->target_kind !== 'mobile_money') {
+            throw new InvalidArgumentException('Le versement FlexPay est réservé aux comptes mobile money.');
+        }
+        if ($order->payout_not_before?->isFuture()) {
+            throw new InvalidArgumentException('Délai de sécurité en cours jusqu\'au '.$order->payout_not_before->format('d/m/Y H:i').'.');
+        }
+        if ($order->flexpay_payout_reference) {
+            throw new InvalidArgumentException('Un versement FlexPay est déjà lancé pour cette commande.');
+        }
+        try {
+            $r = $this->flexpay->payout($order, $order->payout_account);
+        } catch (\RuntimeException $e) {
+            throw new InvalidArgumentException($e->getMessage());
+        }
+        $order->update(['payout_via' => 'flexpay', 'flexpay_payout_reference' => $r['reference'], 'operator_id' => $order->operator_id ?: $operator->id]);
+        AuditLog::record($operator, 'order.flexpay_payout', $order, null, ['reference' => $r['reference'], 'amount' => $order->net_amount]);
+        $this->tell($order->user, $order, 'Versement lancé', 'Votre versement de '.$order->net_amount.' $ est envoyé sur votre mobile money. Confirmation en cours.');
+
+        return $order->fresh(['steps', 'corridor', 'user']);
+    }
+
+    /** Rappel FlexPay ou simulation : le versement est confirmé quand FlexPay le dit (vérification auprès de FlexPay). */
+    public function confirmFlexpayPayout(Order $order, bool $trustSimulation = false): Order
+    {
+        $order->loadMissing('steps', 'corridor', 'user');
+        if ($order->payout_via !== 'flexpay' || ! $order->flexpay_payout_reference || ! $order->isActive() || $order->currentStep()?->key !== 'payout_done') {
+            return $order;
+        }
+        if (! $trustSimulation && $this->flexpay->status($order->flexpay_payout_reference) !== 'paid') {
+            return $order;
+        }
+
+        return $this->complete($order, 'payout_done', 'system', null, $order->flexpay_payout_reference);
+    }
+
+    /** Un administrateur lève exceptionnellement le délai de sécurité (raison obligatoire, journalisée). */
+    public function releaseHold(Order $order, User $admin, string $reason): void
+    {
+        if (! $admin->isAdmin()) {
+            throw new InvalidArgumentException('Seul un administrateur peut lever le délai de sécurité.');
+        }
+        $old = $order->payout_not_before;
+        $order->update(['payout_not_before' => null]);
+        $order->steps()->where('key', 'security_check')->update(['note' => 'Délai de sécurité levé par un administrateur']);
+        AuditLog::record($admin, 'order.hold_released', $order, ['until' => $old?->toIso8601String()], ['reason' => $reason]);
+    }
+    /** Lance le paiement FlexPay (mobile money : demande envoyée sur le téléphone ; carte : adresse de la page de paiement). */
+    public function startFlexpay(Order $order, ?string $phone = null): Order
+    {
+        $order->loadMissing('steps', 'corridor', 'user');
+        if (! in_array($order->payment_method, ['flexpay_mobile', 'flexpay_card'], true)) {
+            throw new InvalidArgumentException('Cette commande ne se paie pas avec FlexPay.');
+        }
+        if (! $order->isActive() || $order->currentStep()?->key !== 'client_payment') {
+            throw new InvalidArgumentException('Cette commande n\'attend pas de paiement.');
+        }
+        try {
+            $r = $this->flexpay->charge($order, $order->payment_method, $phone);
+        } catch (\RuntimeException $e) {
+            throw new InvalidArgumentException($e->getMessage());
+        }
+        $order->update(['flexpay_reference' => $r['reference'], 'flexpay_url' => $r['url']]);
+
+        return $order->fresh(['steps', 'corridor', 'user']);
+    }
+
+    /** Appelé par le rappel FlexPay ou la simulation : on interroge FlexPay avant de confirmer (jamais de confiance au corps du rappel). */
+    public function confirmFlexpay(Order $order, bool $trustSimulation = false): Order
+    {
+        $order->loadMissing('steps', 'corridor', 'user');
+        if (! $order->flexpay_reference || ! $order->isActive() || $order->currentStep()?->key !== 'client_payment') {
+            return $order;
+        }
+        if (! $trustSimulation && $this->flexpay->status($order->flexpay_reference) !== 'paid') {
+            return $order;
+        }
+
+        return $this->complete($order, 'client_payment', 'system', null, $order->flexpay_reference);
+    }
     public function block(Order $order, User $by, string $reason): void
     {
         $step = $order->loadMissing('steps')->currentStep();
@@ -230,14 +343,15 @@ class OrderWorkflow
     {
         $label = $order->steps->firstWhere('key', $key)?->label ?? $key;
         $next = $order->currentStep();
+        $toPaypal = ! $order->corridor->isWithdrawal();
         $msg = match ($key) {
-            'payment_received' => 'Nous avons bien reçu votre paiement PayPal de '.$order->amount.' $.',
-            'deposit_proof' => 'Votre preuve de dépôt est enregistrée, un opérateur la vérifie.',
-            'deposit_verified' => 'Votre dépôt est vérifié.',
+            'client_payment' => $actor === 'system' ? 'Votre paiement de '.$order->amount.' $ est confirmé.' : 'Votre paiement et sa preuve sont enregistrés, un opérateur vérifie la réception.',
+            'payment_verified' => 'Nous avons bien reçu votre paiement de '.$order->amount.' $.',
             'security_check' => 'Le contrôle de sécurité est terminé.',
-            'payout_in_progress', 'paypal_sending' => 'Le versement est en cours de préparation.',
-            'payout_done' => 'Versement de '.$order->net_amount.' $ effectué sur votre compte. Vérifiez votre solde.',
-            'paypal_sent' => 'Paiement de '.$order->net_amount.' $ envoyé sur votre compte PayPal.',
+            'payout_in_progress' => $toPaypal ? 'L\'envoi PayPal est en cours de préparation.' : 'Le versement est en cours de préparation.',
+            'payout_done' => $toPaypal
+                ? 'Paiement de '.$order->net_amount.' $ envoyé sur votre compte PayPal. La capture de l\'envoi est disponible dans la commande.'
+                : 'Versement de '.$order->net_amount.' $ effectué sur votre compte. La capture du versement est disponible dans la commande.',
             default => $label,
         };
         if ($order->status === 'completed') {
@@ -248,10 +362,19 @@ class OrderWorkflow
 
         $this->tell($order->user, $order, $label, $msg);
         if ($actor === 'client') {
-            $this->tellStaff($order, 'Action du client', $order->user->name.' : '.Str::lower($label).' ('.$order->reference.').');
+            $this->tellStaff($order, 'Paiement à vérifier', $order->user->name.' a envoyé la preuve de son paiement de '.$order->amount.' $ ('.$order->reference.').');
         }
     }
 
+    /** Canal par lequel l'argent du client est entré chez nous (pour la comptabilité). */
+    private function intakeChannel(Order $order): string
+    {
+        return match (true) {
+            str_starts_with((string) $order->payment_method, 'flexpay') => 'flexpay',
+            in_array($order->payment_method, ['paypal_invoice', 'paypal_account'], true) => 'paypal',
+            default => (string) $order->source_kind,
+        };
+    }
     private function ledgerIntake(Order $order, string $channel): void
     {
         $tx = (string) Str::uuid();
