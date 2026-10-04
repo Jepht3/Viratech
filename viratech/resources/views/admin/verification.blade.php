@@ -17,7 +17,8 @@
         <img src="/admin/verifications/{{ $s->id }}/fichier/selfie" alt="Selfie" style="width:100%;border-radius:16px;border:1px solid var(--line)">
     </div>
     <div class="card">
-        <div class="kv"><span class="mut">Téléphone</span><b>{{ $s->user->phone }} {!! $s->user->phone_verified_at ? '<span class="pill ok xs">vérifié</span>' : '<span class="pill bad xs">non vérifié</span>' !!}</b></div>
+        <div class="kv"><span class="mut">Email</span><b>{{ $s->user->email }} {!! $s->user->email_verified_at ? '<span class="pill ok xs">vérifié</span>' : '<span class="pill bad xs">non vérifié</span>' !!}</b></div>
+        <div class="kv"><span class="mut">Téléphone</span><b>{{ $s->user->phone ?: '—' }}</b></div>
         <div class="kv"><span class="mut">Nom du compte</span><b>{{ $s->user->name }}</b></div>
         <div class="kv"><span class="mut">Pièce</span><b>{{ $s->idTypeLabel() }}</b></div>
         <div class="kv"><span class="mut">Envoyé le</span><b>{{ $s->created_at->format('d/m/Y H:i') }}</b></div>

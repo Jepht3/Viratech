@@ -27,10 +27,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/profile', [ProfileApiController::class, 'show']);
     Route::post('/profile/avatar', [ProfileApiController::class, 'avatar']);
     Route::get('/avatar/{id}', [ProfileApiController::class, 'avatarFile']);
-    Route::post('/phone/send', [ProfileApiController::class, 'sendPhoneCode'])->middleware('throttle:5,10');
-    Route::post('/phone/verify', [ProfileApiController::class, 'verifyPhone'])->middleware('throttle:10,10');
+    Route::post('/email/send', [ProfileApiController::class, 'sendEmailCode'])->middleware('throttle:5,10');
+    Route::post('/email/verify', [ProfileApiController::class, 'verifyEmail'])->middleware('throttle:10,10');
+    Route::post('/kyc/document', [ProfileApiController::class, 'kycDocument'])->middleware('throttle:10,60');
     Route::post('/kyc/challenge', [ProfileApiController::class, 'newChallenge']);
-    Route::post('/kyc', [ProfileApiController::class, 'submitKyc'])->middleware('throttle:5,60');
+    Route::post('/kyc/selfie', [ProfileApiController::class, 'kycSelfie'])->middleware('throttle:10,60');
     Route::post('/devices', [ProfileApiController::class, 'registerDevice']);
 
     Route::get('/notifications', [ClientApiController::class, 'notifications']);

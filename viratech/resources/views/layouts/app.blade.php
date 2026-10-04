@@ -44,7 +44,7 @@
             <a class="nav {{ request()->is('echange*') ? 'on' : '' }}" href="/echange/nouveau">Échanger</a>
             <a class="nav {{ request()->is('commandes*') ? 'on' : '' }}" href="/commandes">Historique</a>
             <a class="nav {{ request()->is('moyens-de-reception*') ? 'on' : '' }}" href="/moyens-de-reception">Moyens de réception</a>
-            <a class="nav {{ request()->is('profil*') ? 'on' : '' }}" href="/profil">Mon profil @if(! $u->phone_verified_at)<span class="pill wait xs">!</span>@endif</a>
+            <a class="nav {{ request()->is('profil*') ? 'on' : '' }}" href="/profil">Mon profil @if($u->role === 'client' && (! $u->email_verified_at || (int) $u->kyc_level < 2))<span class="pill wait xs">!</span>@endif</a>
         @endif
             <a class="nav {{ request()->is('notifications*') ? 'on' : '' }}" href="/notifications">Notifications @if($unread)<span class="pill bad xs">{{ $unread }}</span>@endif</a>
         </nav>

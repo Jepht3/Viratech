@@ -16,12 +16,10 @@ class KycSubmission extends Model
 
     public const ID_TYPES = [
         'carte_electeur' => "Carte d'électeur",
-        'carte_identite' => "Carte d'identité",
         'passeport' => 'Passeport',
-        'permis' => 'Permis de conduire',
     ];
 
-    public const STATUSES = ['pending' => 'En cours de vérification', 'approved' => 'Approuvée', 'rejected' => 'Refusée'];
+    public const STATUSES = ['draft' => 'Selfie attendu', 'pending' => 'En cours de vérification', 'approved' => 'Approuvée', 'rejected' => 'Refusée'];
 
     public function user(): BelongsTo
     {

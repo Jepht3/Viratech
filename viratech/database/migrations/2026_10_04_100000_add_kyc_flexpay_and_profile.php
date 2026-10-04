@@ -10,10 +10,9 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             $table->string('avatar_path')->nullable()->after('phone');
-            $table->timestamp('phone_verified_at')->nullable()->after('avatar_path');
-            $table->string('phone_code')->nullable();                      // code SMS haché
-            $table->timestamp('phone_code_expires_at')->nullable();
-            $table->unsignedTinyInteger('phone_code_attempts')->default(0);
+            $table->string('email_code')->nullable();                     // code de vérification de l'email (haché)
+            $table->timestamp('email_code_expires_at')->nullable();
+            $table->unsignedTinyInteger('email_code_attempts')->default(0);
             $table->decimal('custom_monthly_limit', 12, 2)->nullable();    // plafond fixé à la main par l'admin (prioritaire)
         });
 
@@ -59,13 +58,13 @@ return new class extends Migration
         Schema::create('kyc_submissions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->string('status', 12)->default('pending');              // pending | approved | rejected
-            $table->string('id_type', 20);                                 // carte_electeur | passeport | permis | carte_identite
-            $table->string('challenge_code', 8);                           // code à écrire sur papier et tenir sur le selfie
-            $table->string('selfie_path');
+            $table->string('status', 12)->default('draft');                // draft (pièce reçue, selfie attendu) | pending | approved | rejected
+            $table->string('id_type', 20);                                 // carte_electeur | passeport
+            $table->string('challenge_code', 8)->nullable();               // code à écrire sur papier et tenir sur le selfie
+            $table->string('selfie_path')->nullable();
             $table->string('id_front_path');
             $table->string('id_back_path')->nullable();
-            $table->string('selfie_hash', 64);
+            $table->string('selfie_hash', 64)->nullable();
             $table->string('id_front_hash', 64);
             $table->string('id_back_hash', 64)->nullable();
             $table->json('flags')->nullable();                             // alertes automatiques (doublon, photo ancienne, etc.)
@@ -97,6 +96,6 @@ return new class extends Migration
         Schema::dropIfExists('kyc_challenges');
         Schema::dropIfExists('kyc_submissions');
         Schema::table('orders', fn (Blueprint $t) => $t->dropColumn(['payment_method', 'flexpay_reference', 'flexpay_url']));
-        Schema::table('users', fn (Blueprint $t) => $t->dropColumn(['avatar_path', 'phone_verified_at', 'phone_code', 'phone_code_expires_at', 'phone_code_attempts', 'custom_monthly_limit']));
+        Schema::table('users', fn (Blueprint $t) => $t->dropColumn(['avatar_path', 'email_code', 'email_code_expires_at', 'email_code_attempts', 'custom_monthly_limit']));
     }
 };

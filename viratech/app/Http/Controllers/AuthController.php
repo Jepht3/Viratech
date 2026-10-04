@@ -37,7 +37,7 @@ class AuthController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:120',
             'email' => 'required|email|max:190|unique:users,email',
-            'phone' => 'required|string|max:30',
+            'phone' => 'nullable|string|max:30',
             'password' => ['required', 'confirmed', Password::min(8)],
         ]);
 
@@ -45,7 +45,13 @@ class AuthController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
-        return redirect('/tableau-de-bord');
+        try {
+            app(\App\Services\EmailVerifier::class)->send($user);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return redirect('/profil')->with('ok', 'Compte créé. Entrez le code reçu par email pour pouvoir faire des échanges.');
     }
 
     public function logout(Request $request)

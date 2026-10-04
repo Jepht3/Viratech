@@ -59,8 +59,8 @@ class OrderController extends Controller
         $corridor = Corridor::with('tiers')->where('code', $data['corridor'])->firstOrFail();
         $method = $user->payoutMethods()->find($data['payout_method_id']);
 
-        if (! $user->phone_verified_at) {
-            return redirect('/profil')->with('error', 'Vérifiez votre numéro de téléphone avant de faire un échange.');
+        if (! $user->email_verified_at) {
+            return redirect('/profil')->with('error', 'Vérifiez votre adresse email avant de faire un échange.');
         }
         if (! $method) {
             return back()->withErrors(['payout_method_id' => 'Choisissez un moyen de réception.'])->withInput();
@@ -70,7 +70,7 @@ class OrderController extends Controller
         if ($limit !== null) {
             $used = $user->orders()->whereIn('status', ['active', 'completed'])->where('created_at', '>=', now()->startOfMonth())->sum('amount');
             if ($used + (float) $data['amount'] > $limit) {
-                return back()->withErrors(['amount' => 'Ce montant dépasse votre plafond mensuel de '.number_format($limit, 0, ',', ' ').' $. Faites vérifier votre identité ou faites quelques échanges réussis pour l\'augmenter.'])->withInput();
+                return back()->withErrors(['amount' => 'Ce montant dépasse votre plafond mensuel de '.number_format($limit, 0, ',', ' ').' $. Faites vérifier votre identité (pièce + photo avec la pièce) pour passer à '.number_format((float) config('viratech.limits')[2], 0, ',', ' ').' $ par mois.'])->withInput();
             }
         }
 

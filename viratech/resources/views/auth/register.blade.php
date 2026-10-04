@@ -9,7 +9,7 @@
             @error('name')<div class="err">{{ $message }}</div>@enderror
             <label>Email</label><input type="email" name="email" value="{{ old('email') }}" required>
             @error('email')<div class="err">{{ $message }}</div>@enderror
-            <label>Téléphone (WhatsApp)</label><input name="phone" value="{{ old('phone') }}" placeholder="+243 ..." required>
+            <label>Téléphone (facultatif, pour vous joindre)</label><input name="phone" value="{{ old('phone') }}" placeholder="+243 ...">
             @error('phone')<div class="err">{{ $message }}</div>@enderror
             <label>Mot de passe (8 caractères minimum)</label><input type="password" name="password" required>
             @error('password')<div class="err">{{ $message }}</div>@enderror

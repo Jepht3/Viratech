@@ -15,13 +15,15 @@ class Present
     public static function user(User $u): array
     {
         $kyc = $u->kycSubmissions()->latest('id')->first();
+        $stage = $u->role === 'client' ? app(\App\Services\KycService::class)->stage($u) : 'none';
 
         return [
             'id' => $u->id, 'name' => $u->name, 'email' => $u->email, 'phone' => $u->phone, 'role' => $u->role,
             'kyc_level' => $u->kyc_level, 'monthly_limit' => $u->monthlyLimit(),
-            'phone_verified' => (bool) $u->phone_verified_at,
+            'email_verified' => (bool) $u->email_verified_at,
             'avatar_url' => $u->avatar_path ? url('/api/avatar/'.$u->id).'?v='.$u->updated_at?->timestamp : null,
             'limit' => $u->role === 'client' ? $u->limitInfo() : null,
+            'kyc_stage' => $stage,
             'kyc' => $kyc ? ['status' => $kyc->status, 'status_label' => $kyc->statusLabel(), 'rejection_reason' => $kyc->rejection_reason, 'submitted_at' => $kyc->created_at->toIso8601String()] : null,
             'notify_email' => $u->notify_email, 'notify_push' => $u->notify_push,
         ];

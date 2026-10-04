@@ -42,8 +42,8 @@ class OrderWorkflow
         if (! in_array($paymentMethod, $allowedPayment, true)) {
             throw new InvalidArgumentException('Cette façon de payer n\'est pas disponible pour cet échange.');
         }
-        if (! $user->phone_verified_at) {
-            throw new InvalidArgumentException('Vérifiez votre numéro de téléphone avant de faire un échange.');
+        if (! $user->email_verified_at) {
+            throw new InvalidArgumentException('Vérifiez votre adresse email avant de faire un échange.');
         }
         if (! $corridor->is_active || $corridor->coming_soon) {
             throw new InvalidArgumentException('Ce type d\'échange n\'est pas disponible pour le moment.');

@@ -5,15 +5,20 @@ namespace App\Services;
 use App\Models\User;
 
 /**
- * Plafond mensuel d'un client : niveau de vérification, puis montée automatique avec les commandes terminées.
+ * Plafond mensuel d'un client.
+ *
+ *  - email non vérifié : aucun échange ;
+ *  - email vérifié, identité non vérifiée : 150 $ seulement ;
+ *  - identité vérifiée (pièce + photo avec la pièce en main) : 3 000 $, qui monte avec les commandes terminées.
+ *
  * Un plafond fixé à la main par l'administrateur (custom_monthly_limit) prime sur tout le reste.
  */
 class LimitPolicy
 {
-    /** Niveau réellement appliqué : sans téléphone vérifié, aucun échange n'est possible. */
+    /** Niveau réellement appliqué : sans email vérifié, aucun échange n'est possible. */
     public function effectiveLevel(User $u): int
     {
-        return $u->phone_verified_at ? max(1, (int) $u->kyc_level) : 0;
+        return $u->email_verified_at ? max(1, (int) $u->kyc_level) : 0;
     }
 
     public function completedOrders(User $u): int
@@ -21,9 +26,10 @@ class LimitPolicy
         return $u->orders()->where('status', 'completed')->count();
     }
 
+    /** La montée automatique ne concerne que les clients dont l'identité est vérifiée (niveau 2). */
     public function multiplier(User $u): float
     {
-        if ($this->effectiveLevel($u) > config('viratech.limit_growth_max_level')) {
+        if ($this->effectiveLevel($u) !== 2) {
             return 1.0;
         }
         $done = $this->completedOrders($u);
@@ -47,14 +53,14 @@ class LimitPolicy
         return round($base * $this->multiplier($u), 2);
     }
 
-    /** Détail pour l'affichage (« encore 2 commandes pour passer à 750 $ »). */
+    /** Détail pour l'affichage (« encore 2 commandes pour passer à 4 500 $ »). */
     public function describe(User $u): array
     {
         $level = $this->effectiveLevel($u);
         $base = (float) (config('viratech.limits')[$level] ?? 0);
         $done = $this->completedOrders($u);
         $next = null;
-        if ($u->custom_monthly_limit === null && $level >= 1 && $level <= config('viratech.limit_growth_max_level')) {
+        if ($u->custom_monthly_limit === null && $level === 2) {
             foreach (config('viratech.limit_growth') as $orders => $mult) {
                 if ($done < $orders) {
                     $next = ['orders_needed' => $orders - $done, 'limit' => round($base * $mult, 2)];
@@ -66,8 +72,9 @@ class LimitPolicy
         return [
             'level' => $level, 'base' => $base, 'multiplier' => $this->multiplier($u), 'limit' => $this->limit($u),
             'custom' => $u->custom_monthly_limit !== null, 'completed_orders' => $done, 'next' => $next,
-            'phone_verified' => (bool) $u->phone_verified_at,
+            'email_verified' => (bool) $u->email_verified_at,
             'identity_verified' => $level >= 2,
+            'identity_limit' => (float) config('viratech.limits')[2],
         ];
     }
 }

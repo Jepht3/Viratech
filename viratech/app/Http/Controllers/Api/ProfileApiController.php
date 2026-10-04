@@ -4,27 +4,28 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\DeviceToken;
-use App\Models\KycChallenge;
 use App\Models\KycSubmission;
 use App\Models\User;
 use App\Services\AvatarService;
+use App\Services\EmailVerifier;
 use App\Services\KycService;
-use App\Services\PhoneVerifier;
 use App\Support\Present;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
 
-/** Profil (photo, téléphone, vérification d'identité) et jetons de notification, pour les deux applications. */
+/** Profil (photo, email, vérification d'identité) et jetons de notification, pour les deux applications. */
 class ProfileApiController extends Controller
 {
     public function show(Request $request, KycService $kyc)
     {
         $user = $request->user();
-        $challenge = ($user->role === 'client' && $user->phone_verified_at && (int) $user->kyc_level < 2) ? $kyc->challenge($user) : null;
+        $stage = $user->role === 'client' ? $kyc->stage($user) : 'none';
+        $challenge = $stage === 'document' ? $kyc->challenge($user) : null;
 
         return [
             'user' => Present::user($user),
+            'kyc_stage' => $stage,
             'challenge' => $challenge ? ['code' => $challenge->code, 'expires_at' => $challenge->expires_at->toIso8601String()] : null,
             'id_types' => KycSubmission::ID_TYPES,
         ];
@@ -51,14 +52,10 @@ class ProfileApiController extends Controller
         return Storage::response($user->avatar_path);
     }
 
-    public function sendPhoneCode(Request $request, PhoneVerifier $phone)
+    public function sendEmailCode(Request $request, EmailVerifier $email)
     {
-        $request->validate(['phone' => 'nullable|string|max:30']);
-        if ($request->filled('phone') && ! $request->user()->phone_verified_at) {
-            $request->user()->update(['phone' => $request->input('phone')]);
-        }
         try {
-            $dev = $phone->send($request->user()->fresh());
+            $dev = $email->send($request->user());
         } catch (InvalidArgumentException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
@@ -66,42 +63,52 @@ class ProfileApiController extends Controller
         return ['ok' => true] + ($dev ? ['dev_code' => $dev] : []);
     }
 
-    public function verifyPhone(Request $request, PhoneVerifier $phone)
+    public function verifyEmail(Request $request, EmailVerifier $email)
     {
         $data = $request->validate(['code' => 'required|string|max:10']);
         try {
-            $phone->verify($request->user(), $data['code']);
+            $email->verify($request->user(), $data['code']);
         } catch (InvalidArgumentException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
         return ['user' => Present::user($request->user()->fresh())];
+    }
+
+    /** Étape 1 : la pièce (carte d'électeur : avant et arrière ; passeport : page photo). */
+    public function kycDocument(Request $request, KycService $kyc)
+    {
+        $max = (int) config('viratech.kyc.max_file_kb');
+        $data = $request->validate([
+            'id_type' => 'required|string', 'id_front' => 'required|image|mimes:jpg,jpeg,png,webp|max:'.$max, 'id_back' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:'.$max,
+        ]);
+        try {
+            $kyc->submitDocument($request->user(), $data['id_type'], $request->file('id_front'), $request->file('id_back'));
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return $this->show($request, $kyc);
     }
 
     public function newChallenge(Request $request, KycService $kyc)
     {
-        KycChallenge::where('user_id', $request->user()->id)->whereNull('used_at')->update(['expires_at' => now()]);
-        $c = $kyc->challenge($request->user());
+        $c = $kyc->newChallenge($request->user());
 
         return ['code' => $c->code, 'expires_at' => $c->expires_at->toIso8601String()];
     }
 
-    public function submitKyc(Request $request, KycService $kyc)
+    /** Étape 2 : le selfie avec la pièce en main et le code écrit sur papier. */
+    public function kycSelfie(Request $request, KycService $kyc)
     {
-        $max = (int) config('viratech.kyc.max_file_kb');
-        $data = $request->validate([
-            'id_type' => 'required|string',
-            'selfie' => 'required|image|mimes:jpg,jpeg,png,webp|max:'.$max,
-            'id_front' => 'required|image|mimes:jpg,jpeg,png,webp|max:'.$max,
-            'id_back' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:'.$max,
-        ]);
+        $request->validate(['selfie' => 'required|image|mimes:jpg,jpeg,png,webp|max:'.(int) config('viratech.kyc.max_file_kb')]);
         try {
-            $kyc->submit($request->user(), $data['id_type'], $request->file('selfie'), $request->file('id_front'), $request->file('id_back'));
+            $kyc->submitSelfie($request->user(), $request->file('selfie'));
         } catch (InvalidArgumentException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
-        return ['user' => Present::user($request->user()->fresh())];
+        return $this->show($request, $kyc);
     }
 
     /** Enregistre le jeton Firebase du téléphone pour recevoir les notifications dans la barre Android. */

@@ -45,10 +45,11 @@ Route::middleware('auth')->group(function () {
     // Profil : photo, téléphone, vérification d'identité (clients et équipe)
     Route::get('/profil', [ProfileController::class, 'show']);
     Route::post('/profil/photo', [ProfileController::class, 'avatar']);
-    Route::post('/profil/telephone/code', [ProfileController::class, 'sendPhoneCode'])->middleware('throttle:5,10');
-    Route::post('/profil/telephone/verifier', [ProfileController::class, 'verifyPhone'])->middleware('throttle:10,10');
+    Route::post('/profil/email/code', [ProfileController::class, 'sendEmailCode'])->middleware('throttle:5,10');
+    Route::post('/profil/email/verifier', [ProfileController::class, 'verifyEmail'])->middleware('throttle:10,10');
+    Route::post('/profil/verification/piece', [ProfileController::class, 'kycDocument'])->middleware('throttle:10,60');
     Route::post('/profil/verification/code', [ProfileController::class, 'newChallenge']);
-    Route::post('/profil/verification', [ProfileController::class, 'submitKyc'])->middleware('throttle:5,60');
+    Route::post('/profil/verification/selfie', [ProfileController::class, 'kycSelfie'])->middleware('throttle:10,60');
     Route::get('/avatar/{id}', [ProfileController::class, 'avatarFile']);
 
     Route::get('/notifications', [NotificationController::class, 'index']);

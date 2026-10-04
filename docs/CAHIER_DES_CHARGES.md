@@ -500,12 +500,19 @@ Voir `docs/FLEXPAY.md`. Résumé : le client peut payer par mobile money ou cart
 ### 14.4 Paramètres administrables
 Dans le tableau de bord et l'application Admin (administrateur uniquement) : FlexPay ; **emails via Resend** (clé API, adresse d'envoi) ; **notifications push Google / Firebase** (identifiant du projet, compte de service JSON). Les secrets sont chiffrés en base et jamais réaffichés. L'application mobile devra recevoir le fichier `google-services.json` du projet Firebase pour recevoir les notifications push.
 
-### 14.5 Téléphone, identité, photo et plafonds
-- **Téléphone vérifié par code SMS** : obligatoire avant tout échange.
-- **Photo de profil** : enregistrée par le client (appareil photo ou galerie).
-- **Vérification d'identité** : le client prend **un selfie avec sa pièce dans la main droite et une feuille portant un code à 5 chiffres** généré par Viratech (valable 30 min), puis **la photo de la pièce** (avant, et arrière si elle existe). Prise de vue **uniquement avec l'appareil photo** dans l'application.
-- **Contre le contournement** : code éphémère (une vieille photo ne le contient pas), empreinte SHA-256 des images comparée à celles des autres comptes (photo déjà utilisée), détection d'image réutilisée, photo ancienne ou de faible résolution signalée, 3 tentatives par jour maximum, **validation manuelle obligatoire** par l'équipe (rien n'est approuvé automatiquement), photos stockées de façon privée.
-- **Plafonds mensuels** : téléphone non vérifié : 0 $ (aucun échange) · téléphone vérifié : 500 $ · identité vérifiée : 3 000 $ · sur mesure : 10 000 $ par défaut. **Montée automatique** avec les échanges terminés : ×1,5 dès 3 échanges, ×2 dès 10, ×3 dès 25 (niveaux 1 et 2). L'administrateur peut fixer un plafond à la main pour un client.
+### 14.5 Email, identité, photo et plafonds (remplace la vérification par SMS)
+Pas de vérification par SMS : il n'existe pas de fournisseur SMS gratuit pour la RDC (Firebase : 10 SMS/jour gratuits puis payant ; Africa's Talking : environ 0,03 $ le SMS). Le numéro de téléphone devient un simple contact facultatif. Seuls deux contrôles comptent :
 
+1. **Email vérifié (obligatoire)** : code à 6 chiffres envoyé par email (Resend en production, Mailpit en local). Sans email vérifié : aucun échange.
+2. **Identité vérifiée** : sans elle, **les échanges sont limités à 150 $ par mois seulement**.
+
+**Vérification d'identité en deux temps, avec la caméra uniquement (aucun fichier à envoyer)** :
+- *Étape 1* : le client photographie sa **pièce d'identité : carte d'électeur (avant et arrière) ou passeport (page photo)**.
+- *Étape 2* : on lui demande **une photo de lui tenant cette pièce dans la main droite**, avec une feuille portant un **code à 5 chiffres** généré par Viratech (valable 30 min) et écrit à la main.
+- L'équipe compare le visage, la pièce et le code, puis approuve ou refuse (raison montrée au client). Rien n'est approuvé automatiquement.
+- Dans l'application, les photos passent uniquement par l'appareil photo. Sur le site, elles passent par la caméra du navigateur (pas de sélecteur de fichier) ; le navigateur ne permet pas de l'imposer de façon absolue côté serveur, l'application mobile reste donc la voie la plus sûre.
+- **Contre le contournement** : code éphémère (une vieille photo ne le contient pas), empreinte SHA-256 des images comparée à celles des autres comptes, même image utilisée plusieurs fois, photo ancienne ou floue signalée, 3 tentatives par jour, photos stockées de façon privée.
+
+**Plafonds mensuels** : email non vérifié : 0 $ · email vérifié, identité non vérifiée : **150 $** · identité vérifiée : **3 000 $** · sur mesure : 10 000 $ par défaut. **Montée automatique** réservée aux identités vérifiées, avec les échanges terminés : ×1,5 dès 3, ×2 dès 10, ×3 dès 25. L'administrateur peut fixer un plafond à la main pour un client.
 ### 14.6 Identité visuelle
 Couleurs du logo : vert (principal), anthracite, cyan (accent). Cartes de statistiques toutes de couleurs différentes (vert, cyan, orange, anthracite) pour ne jamais répéter la même couleur ; l'ambre reste réservé au statut « en cours ».

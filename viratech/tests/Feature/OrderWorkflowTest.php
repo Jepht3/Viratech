@@ -178,10 +178,10 @@ class OrderWorkflowTest extends TestCase
         $this->assertSame('completed', $o2->status);
     }
 
-    public function test_telephone_non_verifie_ne_peut_pas_echanger(): void
+    public function test_email_non_verifie_ne_peut_pas_echanger(): void
     {
         $client = $this->client();
-        $client->update(['phone_verified_at' => null]);
+        $client->update(['email_verified_at' => null]);
         $this->fails(fn () => $this->wf->create($client->fresh(), Corridor::where('code', 'paypal_equity')->first(), 200, $client->payoutMethods()->where('kind', 'equity')->first()));
     }
 

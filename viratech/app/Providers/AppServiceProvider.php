@@ -7,19 +7,16 @@ use App\Services\FlexpayGateway;
 use App\Services\HttpFlexpayGateway;
 use App\Services\LocalFlexpayGateway;
 use App\Services\LocalPaypalGateway;
-use App\Services\LogSmsSender;
 use App\Services\PaypalGateway;
-use App\Services\SmsSender;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        // Hors ligne : factures PayPal, paiements FlexPay et SMS simulés. Les passerelles réelles les remplacent quand elles sont activées.
+        // Hors ligne : factures PayPal et paiements FlexPay simulés. Les passerelles réelles les remplacent quand elles sont activées.
         $this->app->bind(PaypalGateway::class, LocalPaypalGateway::class);
         $this->app->bind(FlexpayGateway::class, fn () => Setting::bool('flexpay.enabled') ? new HttpFlexpayGateway : new LocalFlexpayGateway);
-        $this->app->bind(SmsSender::class, LogSmsSender::class);
     }
 
     public function boot(): void

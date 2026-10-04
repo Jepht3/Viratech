@@ -53,13 +53,13 @@ class WebFlowTest extends TestCase
         $this->as('operateur@viratech.test')->get('/admin/parametres')->assertForbidden();
     }
 
-    public function test_l_inscription_cree_toujours_un_client_au_telephone_non_verifie(): void
+    public function test_l_inscription_cree_toujours_un_client_a_l_email_non_verifie(): void
     {
-        $this->post('/inscription', ['name' => 'Test', 'email' => 't@x.com', 'phone' => '+243', 'password' => 'motdepasse1', 'password_confirmation' => 'motdepasse1', 'role' => 'admin'])
-            ->assertRedirect('/tableau-de-bord');
+        $this->post('/inscription', ['name' => 'Test', 'email' => 't@x.com', 'phone' => '', 'password' => 'motdepasse1', 'password_confirmation' => 'motdepasse1', 'role' => 'admin'])
+            ->assertRedirect('/profil');
         $u = User::where('email', 't@x.com')->first();
         $this->assertSame('client', $u->role);
-        $this->assertNull($u->phone_verified_at);
+        $this->assertNull($u->email_verified_at);
         $this->assertSame(0.0, $u->monthlyLimit());
     }
 
@@ -108,25 +108,29 @@ class WebFlowTest extends TestCase
         $this->actingAs($other)->get('/commandes/'.$order->reference)->assertNotFound();
     }
 
-    public function test_le_plafond_mensuel_est_applique(): void
+    public function test_sans_identite_verifiee_les_echanges_sont_limites_a_150_dollars(): void
     {
-        $client = User::where('email', 'client@viratech.test')->first(); // téléphone vérifié : 500 $ / mois
-        $method = $client->payoutMethods()->where('kind', 'equity')->first();
+        $beginner = User::where('email', 'debutant@viratech.test')->first();
+        $method = $beginner->payoutMethods()->where('kind', 'equity')->first();
+        $this->assertSame(150.0, $beginner->monthlyLimit());
 
-        $this->as('client@viratech.test')->post('/echange', ['corridor' => 'paypal_equity', 'amount' => 600, 'payout_method_id' => $method->id])->assertSessionHasErrors('amount');
+        $this->as('debutant@viratech.test')->post('/echange', ['corridor' => 'paypal_equity', 'amount' => 200, 'payout_method_id' => $method->id])->assertSessionHasErrors('amount');
         $this->assertSame(0, Order::count());
+        $this->as('debutant@viratech.test')->post('/echange', ['corridor' => 'paypal_equity', 'amount' => 150, 'payout_method_id' => $method->id, 'payment_method' => 'paypal_invoice'])->assertRedirect();
+        $this->assertSame(1, Order::count());
+        // 150 $ déjà utilisés ce mois-ci : tout nouvel échange est refusé.
+        $this->as('debutant@viratech.test')->post('/echange', ['corridor' => 'mobile_paypal', 'amount' => 100, 'payout_method_id' => $beginner->payoutMethods()->where('kind', 'paypal')->first()->id, 'source_kind' => 'mpesa'])->assertSessionHasErrors('amount');
     }
 
-    public function test_sans_telephone_verifie_on_est_renvoye_vers_le_profil(): void
+    public function test_sans_email_verifie_on_est_renvoye_vers_le_profil(): void
     {
         $client = User::where('email', 'client@viratech.test')->first();
         $method = $client->payoutMethods()->where('kind', 'equity')->first();
-        $client->update(['phone_verified_at' => null]);
+        $client->update(['email_verified_at' => null]);
 
         $this->as('client@viratech.test')->post('/echange', ['corridor' => 'paypal_equity', 'amount' => 200, 'payout_method_id' => $method->id])->assertRedirect('/profil');
         $this->assertSame(0, Order::count());
     }
-
     public function test_les_pages_principales_s_affichent(): void
     {
         foreach (['/tableau-de-bord', '/echange/nouveau', '/commandes', '/moyens-de-reception', '/profil', '/notifications'] as $url) {

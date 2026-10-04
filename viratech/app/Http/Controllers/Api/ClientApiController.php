@@ -108,8 +108,8 @@ class ClientApiController extends Controller
         $user = $request->user();
         $corridor = Corridor::with('tiers')->where('code', $data['corridor'])->firstOrFail();
         $method = $user->payoutMethods()->find($data['payout_method_id']);
-        if (! $user->phone_verified_at) {
-            return response()->json(['message' => 'Vérifiez votre numéro de téléphone avant de faire un échange.', 'code' => 'phone_not_verified'], 422);
+        if (! $user->email_verified_at) {
+            return response()->json(['message' => 'Vérifiez votre adresse email avant de faire un échange.', 'code' => 'email_not_verified'], 422);
         }
         if (! $method) {
             return response()->json(['message' => 'Choisissez un moyen de réception.'], 422);
@@ -118,7 +118,7 @@ class ClientApiController extends Controller
         if (($limit = $user->monthlyLimit()) !== null) {
             $used = $user->orders()->whereIn('status', ['active', 'completed'])->where('created_at', '>=', now()->startOfMonth())->sum('amount');
             if ($used + (float) $data['amount'] > $limit) {
-                return response()->json(['message' => 'Ce montant dépasse votre plafond mensuel de '.number_format($limit, 0, ',', ' ').' $. Faites vérifier votre identité pour l\'augmenter.'], 422);
+                return response()->json(['message' => 'Ce montant dépasse votre plafond mensuel de '.number_format($limit, 0, ',', ' ').' $. Faites vérifier votre identité (pièce + photo avec la pièce) pour passer à '.number_format((float) config('viratech.limits')[2], 0, ',', ' ').' $ par mois.'], 422);
             }
         }
 

@@ -10,7 +10,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Hidden(['password', 'remember_token', 'phone_code'])]
+#[Hidden(['password', 'remember_token', 'email_code'])]
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
@@ -21,8 +21,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'phone_verified_at' => 'datetime',
-            'phone_code_expires_at' => 'datetime',
+            'email_code_expires_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
             'notify_email' => 'boolean',

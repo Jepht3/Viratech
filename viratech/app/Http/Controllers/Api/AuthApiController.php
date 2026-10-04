@@ -32,9 +32,14 @@ class AuthApiController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:120', 'email' => 'required|email|max:190|unique:users,email',
-            'phone' => 'required|string|max:30', 'password' => ['required', Password::min(8)], 'device' => 'nullable|string|max:80',
+            'phone' => 'nullable|string|max:30', 'password' => ['required', Password::min(8)], 'device' => 'nullable|string|max:80',
         ]);
         $user = User::create([...collect($data)->except('device')->all(), 'role' => 'client']);
+        try {
+            app(\App\Services\EmailVerifier::class)->send($user);
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return ['token' => $user->createToken($data['device'] ?? 'client', ['client'])->plainTextToken, 'user' => Present::user($user)];
     }

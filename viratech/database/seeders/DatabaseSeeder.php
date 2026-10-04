@@ -67,12 +67,20 @@ class DatabaseSeeder extends Seeder
     private function users(): void
     {
         // Comptes de test locaux (mot de passe : password). À supprimer / changer avant toute mise en ligne.
-        User::firstOrCreate(['email' => 'admin@viratech.test'], ['name' => 'Administrateur', 'role' => 'admin', 'password' => 'password', 'phone' => '+243000000001', 'kyc_level' => 3, 'phone_verified_at' => now()]);
-        User::firstOrCreate(['email' => 'operateur@viratech.test'], ['name' => 'Opérateur', 'role' => 'operator', 'password' => 'password', 'phone' => '+243000000002', 'kyc_level' => 3, 'phone_verified_at' => now()]);
+        User::firstOrCreate(['email' => 'admin@viratech.test'], ['name' => 'Administrateur', 'role' => 'admin', 'password' => 'password', 'phone' => '+243000000001', 'kyc_level' => 3, 'email_verified_at' => now()]);
+        User::firstOrCreate(['email' => 'operateur@viratech.test'], ['name' => 'Opérateur', 'role' => 'operator', 'password' => 'password', 'phone' => '+243000000002', 'kyc_level' => 3, 'email_verified_at' => now()]);
 
-        $client = User::firstOrCreate(['email' => 'client@viratech.test'], ['name' => 'Jean Freelance', 'role' => 'client', 'password' => 'password', 'phone' => '+243810000000', 'kyc_level' => 1, 'phone_verified_at' => now()]);
-        $client->payoutMethods()->firstOrCreate(['kind' => 'equity'], ['label' => 'Mon compte Equity', 'account_value' => '1234567890123456', 'holder_name' => 'Jean Freelance', 'is_verified' => true]);
-        $client->payoutMethods()->firstOrCreate(['kind' => 'mpesa'], ['label' => 'M-Pesa', 'account_value' => '+243810000000', 'holder_name' => 'Jean Freelance', 'is_verified' => true]);
-        $client->payoutMethods()->firstOrCreate(['kind' => 'paypal'], ['label' => 'Mon PayPal', 'account_value' => 'jean.freelance@example.com', 'holder_name' => 'Jean Freelance', 'is_verified' => true]);
+        $client = User::firstOrCreate(['email' => 'client@viratech.test'], ['name' => 'Jean Freelance', 'role' => 'client', 'password' => 'password', 'phone' => '+243810000000', 'kyc_level' => 2, 'email_verified_at' => now()]);
+        foreach ([$client, $this->beginner()] as $c) {
+            $c->payoutMethods()->firstOrCreate(['kind' => 'equity'], ['label' => 'Mon compte Equity', 'account_value' => '1234567890123456', 'holder_name' => $c->name, 'is_verified' => true]);
+            $c->payoutMethods()->firstOrCreate(['kind' => 'mpesa'], ['label' => 'M-Pesa', 'account_value' => '+243810000000', 'holder_name' => $c->name, 'is_verified' => true]);
+            $c->payoutMethods()->firstOrCreate(['kind' => 'paypal'], ['label' => 'Mon PayPal', 'account_value' => 'client@example.com', 'holder_name' => $c->name, 'is_verified' => true]);
+        }
+    }
+
+    /** Client dont l'email est vérifié mais pas l'identité : limité à 150 $ par mois. */
+    private function beginner(): User
+    {
+        return User::firstOrCreate(['email' => 'debutant@viratech.test'], ['name' => 'Marie Débutante', 'role' => 'client', 'password' => 'password', 'kyc_level' => 1, 'email_verified_at' => now()]);
     }
 }

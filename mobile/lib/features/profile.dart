@@ -6,7 +6,8 @@ import '../services/api.dart';
 import '../services/session.dart';
 import '../ui/widgets.dart';
 
-/// Profil : photo, téléphone vérifié, plafond mensuel et vérification d'identité (clients).
+/// Profil : photo, email vérifié, plafond mensuel et vérification d'identité en deux temps (clients).
+/// Les photos d'identité se prennent uniquement avec l'appareil photo : aucun fichier à envoyer.
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
   @override
@@ -41,24 +42,16 @@ class _Body extends StatefulWidget {
 }
 
 class _BodyState extends State<_Body> {
-  final _phone = TextEditingController();
   final _otp = TextEditingController();
   String idType = 'carte_electeur';
-  String? selfie, front, back;
+  String? front, back, selfie;
   bool busy = false;
 
   Map<String, dynamic> get user => Map<String, dynamic>.from(widget.data['user'] as Map);
   bool get isClient => user['role'] == 'client';
 
   @override
-  void initState() {
-    super.initState();
-    _phone.text = '${user['phone'] ?? ''}';
-  }
-
-  @override
   void dispose() {
-    _phone.dispose();
     _otp.dispose();
     super.dispose();
   }
@@ -86,20 +79,23 @@ class _BodyState extends State<_Body> {
   Widget build(BuildContext context) {
     final u = user;
     final limit = u['limit'] as Map?;
+    final stage = '${widget.data['kyc_stage']}';
     final kyc = u['kyc'] as Map?;
-    final level = (u['kyc_level'] as num?)?.toInt() ?? 0;
-    final verified = u['phone_verified'] == true;
+    final verified = u['email_verified'] == true;
     final challenge = widget.data['challenge'] as Map?;
     final types = Map<String, dynamic>.from(widget.data['id_types'] as Map);
 
     return ListView(padding: kPagePadding, children: [
-      const PageTitle('Mon profil', subtitle: 'Photo, téléphone et vérification'),
+      const PageTitle('Mon profil', subtitle: 'Photo, email et vérification'),
       Panel(
         child: Row(children: [
-          GestureDetector(onTap: busy ? null : _changePhoto, child: Stack(children: [
-            Avatar(user: u, size: 84),
-            Positioned(right: 0, bottom: 0, child: Container(padding: const EdgeInsets.all(5), decoration: const BoxDecoration(color: VT.accent, shape: BoxShape.circle), child: const Icon(Icons.photo_camera_rounded, size: 16, color: Color(0xFF04222B)))),
-          ])),
+          GestureDetector(
+            onTap: busy ? null : _changePhoto,
+            child: Stack(children: [
+              Avatar(user: u, size: 84),
+              Positioned(right: 0, bottom: 0, child: Container(padding: const EdgeInsets.all(5), decoration: const BoxDecoration(color: VT.accent, shape: BoxShape.circle), child: const Icon(Icons.photo_camera_rounded, size: 16, color: Color(0xFF04222B)))),
+            ]),
+          ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -116,30 +112,28 @@ class _BodyState extends State<_Body> {
         Panel(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              const Text('Téléphone', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-              Pill(verified ? '✓ Vérifié' : 'À vérifier', kind: verified ? 'ok' : 'wait'),
+              const Text('Adresse email', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+              Pill(verified ? '✓ Vérifiée' : 'À vérifier', kind: verified ? 'ok' : 'wait'),
             ]),
             const SizedBox(height: 8),
             if (verified)
-              Text('${u['phone']} est vérifié.', style: const TextStyle(color: VT.mut))
+              Text('${u['email']} est vérifiée.', style: const TextStyle(color: VT.mut))
             else ...[
-              const Text('Un code est envoyé par SMS. La vérification est obligatoire avant tout échange.', style: TextStyle(color: VT.mut, fontSize: 13)),
-              const SizedBox(height: 10),
-              TextField(controller: _phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Numéro de téléphone')),
+              Text('Un code à 6 chiffres est envoyé à ${u['email']}. La vérification est obligatoire avant tout échange.', style: const TextStyle(color: VT.mut, fontSize: 13)),
               const SizedBox(height: 10),
               OutlinedButton(
                 onPressed: busy
                     ? null
                     : () => _run(() async {
-                          final r = await Api.i.post('/phone/send', data: {'phone': _phone.text.trim()});
+                          final r = await Api.i.post('/email/send');
                           if (r is Map && r['dev_code'] != null && context.mounted) toast(context, 'Mode test : le code est ${r['dev_code']}');
-                        }, ok: 'Code envoyé par SMS.', reload: false),
+                        }, ok: 'Code envoyé par email.', reload: false),
                 child: const Text('Envoyer le code'),
               ),
               const SizedBox(height: 10),
-              TextField(controller: _otp, keyboardType: TextInputType.number, maxLength: 6, decoration: const InputDecoration(labelText: 'Code reçu par SMS', counterText: '')),
+              TextField(controller: _otp, keyboardType: TextInputType.number, maxLength: 6, decoration: const InputDecoration(labelText: 'Code reçu par email', counterText: '')),
               const SizedBox(height: 10),
-              FilledButton(onPressed: busy ? null : () => _run(() => Api.i.post('/phone/verify', data: {'code': _otp.text.trim()}), ok: 'Téléphone vérifié.'), child: const Text('Vérifier')),
+              FilledButton(onPressed: busy ? null : () => _run(() => Api.i.post('/email/verify', data: {'code': _otp.text.trim()}), ok: 'Email vérifié.'), child: const Text('Vérifier')),
             ],
           ]),
         ),
@@ -150,13 +144,20 @@ class _BodyState extends State<_Body> {
               const Text('Mon plafond mensuel', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
               const SizedBox(height: 6),
               Text(money(n(limit['limit']), decimals: 0), style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w800)),
-              Text(limit['custom'] == true ? 'Plafond fixé par Viratech' : 'Niveau ${limit['level']}${n(limit['multiplier']) > 1 ? ' · bonus ×${limit['multiplier']} grâce à vos échanges réussis' : ''}', style: const TextStyle(color: VT.mut, fontSize: 12.5)),
+              Text(
+                limit['custom'] == true
+                    ? 'Plafond fixé par Viratech'
+                    : (limit['email_verified'] != true ? 'Vérifiez votre email pour pouvoir faire des échanges' : (limit['identity_verified'] != true ? 'Identité non vérifiée : ${money(n(limit['limit']), decimals: 0)} seulement' : 'Identité vérifiée${n(limit['multiplier']) > 1 ? ' · bonus ×${limit['multiplier']} grâce à vos échanges réussis' : ''}')),
+                style: const TextStyle(color: VT.mut, fontSize: 12.5),
+              ),
+              if (limit['email_verified'] == true && limit['identity_verified'] != true) ...[
+                const SizedBox(height: 10),
+                Container(width: double.infinity, padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: VT.netBg, borderRadius: BorderRadius.circular(14)), child: Text('Faites vérifier votre identité (pièce + photo avec la pièce en main) pour passer à ${money(n(limit['identity_limit']), decimals: 0)} par mois.', style: const TextStyle(color: VT.teal, fontWeight: FontWeight.w600, fontSize: 13))),
+              ],
               if (limit['next'] != null) ...[
                 const SizedBox(height: 10),
                 Container(width: double.infinity, padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: VT.netBg, borderRadius: BorderRadius.circular(14)), child: Text('Encore ${limit['next']['orders_needed']} échange(s) réussi(s) et votre plafond passe à ${money(n(limit['next']['limit']), decimals: 0)}.', style: const TextStyle(color: VT.teal, fontWeight: FontWeight.w600, fontSize: 13))),
               ],
-              const SizedBox(height: 8),
-              const Text("Téléphone vérifié : 500 \$/mois · Identité vérifiée : 3 000 \$/mois. La limite augmente aussi avec le nombre d'échanges terminés.", style: TextStyle(color: VT.mut, fontSize: 11.5)),
             ]),
           ),
         ],
@@ -165,54 +166,63 @@ class _BodyState extends State<_Body> {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
               const Text("Vérification d'identité", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-              if (level >= 2) const Pill('✓ Vérifiée', kind: 'ok') else if (kyc?['status'] == 'pending') const Pill('En cours', kind: 'wait') else if (kyc?['status'] == 'rejected') const Pill('Refusée', kind: 'bad') else const Pill('Non vérifiée'),
+              if (stage == 'approved') const Pill('✓ Vérifiée', kind: 'ok') else if (stage == 'pending') const Pill('En cours', kind: 'wait') else if (stage == 'document') const Pill('Étape 2 sur 2') else if (stage == 'rejected') const Pill('Refusée', kind: 'bad') else const Pill('Non vérifiée'),
             ]),
             const SizedBox(height: 8),
-            if (level >= 2)
+            if (stage == 'approved')
               const Text('Votre identité est vérifiée : votre plafond mensuel est plus élevé.', style: TextStyle(color: VT.mut))
-            else if (kyc?['status'] == 'pending')
+            else if (stage == 'pending')
               Text('Dossier envoyé le ${dayTime(kyc?['submitted_at'])}. Nous vous prévenons dès qu\'il est vérifié.', style: const TextStyle(color: VT.mut))
             else if (!verified)
-              const Text("Vérifiez d'abord votre numéro de téléphone.", style: TextStyle(color: VT.mut))
-            else ...[
-              if (kyc?['status'] == 'rejected') Container(margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: VT.badBg, borderRadius: BorderRadius.circular(14)), child: Text('Dossier refusé : ${kyc?['rejection_reason']}', style: const TextStyle(color: VT.badFg, fontWeight: FontWeight.w600))),
-              const Text("Pour protéger votre compte, prenez 2 photos maintenant avec l'appareil photo de votre téléphone.", style: TextStyle(color: VT.mut, fontSize: 13)),
+              const Text("Vérifiez d'abord votre adresse email.", style: TextStyle(color: VT.mut))
+            else if (stage == 'document') ...[
+              const Text("Étape 2 sur 2. Votre pièce est reçue. Prenez maintenant une photo de vous qui tenez cette pièce dans la main droite, avec une feuille portant ce code :", style: TextStyle(color: VT.mut, fontSize: 13)),
               const SizedBox(height: 12),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(color: VT.soft, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFCFD5E0))),
                 child: Column(children: [
-                  const Text('Écrivez ce code sur une feuille et tenez-la sur la photo', style: TextStyle(color: VT.mut, fontSize: 12), textAlign: TextAlign.center),
                   Text('${challenge?['code'] ?? '—'}', style: const TextStyle(fontSize: 38, fontWeight: FontWeight.w800, letterSpacing: 6, color: VT.teal)),
+                  const Text('À écrire à la main sur une feuille', style: TextStyle(color: VT.mut, fontSize: 12)),
                   TextButton(onPressed: busy ? null : () => _run(() => Api.i.post('/kyc/challenge'), ok: 'Nouveau code généré.'), child: const Text('Nouveau code')),
                 ]),
               ),
               const SizedBox(height: 12),
-              DropdownButtonFormField<String>(initialValue: idType, decoration: const InputDecoration(labelText: 'Type de pièce'), items: [for (final e in types.entries) DropdownMenuItem(value: e.key, child: Text('${e.value}'))], onChanged: (v) => setState(() => idType = v ?? idType)),
-              const SizedBox(height: 12),
-              _shot('1. Selfie : visage, pièce dans la main droite, feuille avec le code', selfie, () async {
+              _shot('Selfie avec la pièce en main et le code', selfie, () async {
                 final p = await pickPhoto(context, cameraOnly: true, front: true);
                 if (p != null) setState(() => selfie = p);
               }),
-              _shot("2. Photo de la pièce d'identité (face avant, lisible)", front, () async {
+              const SizedBox(height: 8),
+              FilledButton(
+                onPressed: (busy || selfie == null) ? null : () => _run(() => Api.i.uploadFiles('/kyc/selfie', {}, {'selfie': selfie!}), ok: 'Dossier envoyé. Vous serez prévenu dès sa vérification.'),
+                child: const Text('Envoyer mon dossier'),
+              ),
+            ] else ...[
+              if (stage == 'rejected') Container(margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: VT.badBg, borderRadius: BorderRadius.circular(14)), child: Text('Dossier refusé : ${kyc?['rejection_reason']}', style: const TextStyle(color: VT.badFg, fontWeight: FontWeight.w600))),
+              const Text("Étape 1 sur 2. Envoyez votre pièce d'identité : carte d'électeur ou passeport. Les photos se prennent avec l'appareil photo, aucun fichier à envoyer.", style: TextStyle(color: VT.mut, fontSize: 13)),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(initialValue: idType, decoration: const InputDecoration(labelText: 'Type de pièce'), items: [for (final e in types.entries) DropdownMenuItem(value: e.key, child: Text('${e.value}'))], onChanged: (v) => setState(() => idType = v ?? idType)),
+              const SizedBox(height: 12),
+              _shot(idType == 'passeport' ? 'Page photo du passeport (bien lisible)' : "Carte d'électeur : face avant", front, () async {
                 final p = await pickPhoto(context, cameraOnly: true);
                 if (p != null) setState(() => front = p);
               }),
-              _shot('3. Face arrière de la pièce (si elle existe)', back, () async {
-                final p = await pickPhoto(context, cameraOnly: true);
-                if (p != null) setState(() => back = p);
-              }),
+              if (idType == 'carte_electeur')
+                _shot("Carte d'électeur : face arrière", back, () async {
+                  final p = await pickPhoto(context, cameraOnly: true);
+                  if (p != null) setState(() => back = p);
+                }),
               const SizedBox(height: 8),
               FilledButton(
-                onPressed: (busy || selfie == null || front == null)
+                onPressed: (busy || front == null || (idType == 'carte_electeur' && back == null))
                     ? null
-                    : () => _run(() => Api.i.uploadFiles('/kyc', {'id_type': idType}, {'selfie': selfie!, 'id_front': front!, 'id_back': ?back}), ok: 'Dossier envoyé. Vous serez prévenu dès sa vérification.'),
-                child: const Text('Envoyer mon dossier'),
+                    : () => _run(() => Api.i.uploadFiles('/kyc/document', {'id_type': idType}, {'id_front': front!, 'id_back': ?(idType == 'carte_electeur' ? back : null)}), ok: 'Pièce reçue. Dernière étape : le selfie avec la pièce.'),
+                child: const Text('Envoyer ma pièce'),
               ),
-              const SizedBox(height: 8),
-              const Text("Vos photos sont stockées de façon privée et ne servent qu'à vérifier votre identité. Les anciennes photos ou celles déjà utilisées par un autre compte sont refusées.", style: TextStyle(color: VT.mut, fontSize: 11.5)),
             ],
+            const SizedBox(height: 8),
+            const Text("Vos photos sont stockées de façon privée et ne servent qu'à vérifier votre identité. Les anciennes photos ou celles déjà utilisées par un autre compte sont refusées.", style: TextStyle(color: VT.mut, fontSize: 11.5)),
           ]),
         ),
       ],
@@ -225,7 +235,7 @@ class _BodyState extends State<_Body> {
           style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(50), alignment: Alignment.centerLeft),
           onPressed: onTap,
           icon: Icon(path == null ? Icons.photo_camera_rounded : Icons.check_circle_rounded, color: path == null ? VT.mut : VT.teal),
-          label: Text(path == null ? label : 'Photo prise ✓  ·  ${label.split(':').first}', style: const TextStyle(fontSize: 12.5)),
+          label: Text(path == null ? label : 'Photo prise ✓  ·  $label', style: const TextStyle(fontSize: 12.5)),
         ),
       );
 }
