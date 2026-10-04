@@ -92,7 +92,7 @@ class Chan extends StatelessWidget {
   final String kind;
   final double size;
 
-  static const _assets = {'paypal': 'paypal', 'equity': 'equity', 'mpesa': 'mpesa', 'airtel': 'airtel'};
+  static const _assets = {'paypal': 'paypal', 'equity': 'equity', 'mpesa': 'mpesa', 'airtel': 'airtel', 'orange': 'orange', 'afrimoney': 'afrimoney', 'flexpay': 'flexpay'};
 
   Widget _box(Widget child) => Container(
         width: size,
@@ -108,6 +108,7 @@ class Chan extends StatelessWidget {
       return Row(mainAxisSize: MainAxisSize.min, children: [Chan('mpesa', size: size), const SizedBox(width: 3), Chan('airtel', size: size)]);
     }
     final a = _assets[kind];
+    if (a == 'orange' || a == 'afrimoney') return ClipRRect(borderRadius: BorderRadius.circular(size * 0.32), child: Image.asset('assets/logos/$a.png', width: size, height: size, fit: BoxFit.cover));
     if (a != null) return _box(Image.asset('assets/logos/$a.png', fit: BoxFit.contain));
     final label = kind == 'crypto' ? '₮' : (kind.length >= 2 ? kind.substring(0, 2).toUpperCase() : kind);
     return Container(

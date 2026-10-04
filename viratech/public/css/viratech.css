@@ -47,6 +47,7 @@ h1{font-size:26px;letter-spacing:-.02em}h2{font-size:18px}
 .dot.sm{width:26px;height:26px;border-radius:99px}
 .dot.pp{background-image:url(/img/logos/paypal.png);background-size:68%}.dot.eq{background-image:url(/img/logos/equity.png);background-size:84%}
 .dot.mp{background-image:url(/img/logos/mpesa.png);background-size:90%}.dot.ar{background-image:url(/img/logos/airtel.png);background-size:66%}
+.dot.og{background-image:url(/img/logos/orange.png);background-size:100%;border:0}.dot.af{background-image:url(/img/logos/afrimoney.png);background-size:100%;border:0}.dot.fx{background-image:url(/img/logos/flexpay.png);background-size:78%}
 .dot.gen{background:var(--navy);color:#fff;font-size:12px;font-weight:700}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:99px;padding:12px 22px;font-weight:600;font-size:14.5px;background:var(--teal);color:#fff;border:0;cursor:pointer;font-family:inherit}
 .btn.amber{background:var(--accent);color:#04222B}.btn.sec{background:var(--navy);color:#fff}.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}.btn.red{background:var(--badbg);color:var(--badfg)}.btn.small{padding:8px 14px;font-size:13px}.btn.block{width:100%}

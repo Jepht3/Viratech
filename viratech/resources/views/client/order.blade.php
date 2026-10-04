@@ -32,7 +32,7 @@
 
         @if($order->isActive() && $waitingPayment)
         <div class="card">
-            <div class="b" style="margin-bottom:8px">{{ $c->isWithdrawal() ? 'Payer sur PayPal' : 'Payer votre commande' }}</div>
+            <div class="b row" style="margin-bottom:8px">@if(in_array($pm, ['flexpay_mobile','flexpay_card']))<x-chan kind="flexpay" />@endif{{ in_array($pm, ['flexpay_mobile','flexpay_card']) ? 'Payer avec FlexPay' : ($c->isWithdrawal() ? 'Payer sur PayPal' : 'Payer votre commande') }}</div>
 
             @if($pm === 'paypal_invoice')
                 <p class="sm">Une facture PayPal de <b>{{ number_format($order->amount, 2, ',', ' ') }} $</b> est prête (référence <span class="mono">{{ $order->paypal_invoice_id }}</span>). Payez-la : votre paiement est détecté automatiquement, sans capture à envoyer.</p>

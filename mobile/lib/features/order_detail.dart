@@ -236,7 +236,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     return Panel(
       margin: const EdgeInsets.only(bottom: 14),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(type == 'deposit' ? "Envoyer l'argent" : (type == 'flexpay' ? 'Payer avec FlexPay' : 'Payer sur PayPal'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+        Row(children: [if (type == 'flexpay') ...[const Chan('flexpay', size: 30), const SizedBox(width: 10)], Text(type == 'deposit' ? "Envoyer l'argent" : (type == 'flexpay' ? 'Payer avec FlexPay' : 'Payer sur PayPal'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16))]),
         const SizedBox(height: 8),
         if (type == 'paypal_invoice') ...[
           Text('Une facture PayPal de $amount est prête. Payez-la : votre paiement est détecté automatiquement, sans capture à envoyer.'),

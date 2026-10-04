@@ -100,7 +100,7 @@ function fillPayment(keys) {
 }
 function syncPayment() {
   const v = $('payment').value;
-  $('payHelp').textContent = v ? PAY[v][1] : '';
+  $('payHelp').innerHTML = v ? (v.startsWith('flexpay') ? '<span class="dot fx sm" style="display:inline-block;vertical-align:middle;margin-right:6px"></span>' : '') + PAY[v][1] : '';
   // Le réseau d'envoi (M-Pesa, Airtel…) n'est demandé que pour un virement direct : avec FlexPay, le numéro n'est pas affiché.
   $('sourceBox').style.display = v === 'transfer' ? '' : 'none';
 }

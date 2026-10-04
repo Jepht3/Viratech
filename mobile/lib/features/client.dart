@@ -282,7 +282,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
               items: [for (final k in _allowedPayments) DropdownMenuItem(value: k, child: Text(_paymentOptions[k]![0], overflow: TextOverflow.ellipsis))],
               onChanged: (v) => setState(() => paymentMethod = v ?? _allowedPayments.first),
             ),
-            Padding(padding: const EdgeInsets.only(top: 6), child: Text(_paymentOptions[_allowedPayments.contains(paymentMethod) ? paymentMethod : _allowedPayments.first]![1], style: const TextStyle(color: VT.mut, fontSize: 12))),
+            Padding(padding: const EdgeInsets.only(top: 6), child: Row(children: [if (paymentMethod.startsWith('flexpay')) ...[const Chan('flexpay', size: 24), const SizedBox(width: 8)], Expanded(child: Text(_paymentOptions[_allowedPayments.contains(paymentMethod) ? paymentMethod : _allowedPayments.first]![1], style: const TextStyle(color: VT.mut, fontSize: 12)))])),
             const SizedBox(height: 14),
           ],
           // Le réseau d'envoi (M-Pesa, Airtel…) n'est demandé que pour un virement direct : avec FlexPay, aucun numéro n'est affiché.

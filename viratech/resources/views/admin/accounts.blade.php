@@ -5,7 +5,7 @@
 @section('content')
 @php($fp = \App\Models\Setting::bool('flexpay.enabled'))
 @if($fp)
-    <div class="flash" style="background:var(--okbg);color:var(--okfg)">FlexPay est <b>activé</b> : les clients ne voient plus ces numéros pour payer. Ils arrivent directement sur l'écran de paiement automatique FlexPay (mobile money ou carte Visa). Ces numéros servent de secours, pour PayPal, et si vous désactivez FlexPay.</div>
+    <div class="flash row" style="background:var(--okbg);color:var(--okfg);gap:12px"><x-chan kind="flexpay" /><span>FlexPay est <b>activé</b> : les clients ne voient plus ces numéros pour payer. Ils arrivent directement sur l'écran de paiement automatique FlexPay (mobile money ou carte Visa). Ces numéros servent de secours, pour PayPal, et si vous désactivez FlexPay.</span></div>
 @else
     <div class="flash" style="background:var(--waitbg);color:var(--waitfg)">FlexPay est désactivé : le client voit le numéro du réseau qu'il a choisi (M-Pesa vers le numéro M-Pesa, Airtel vers le numéro Airtel…) et envoie la capture de son paiement.</div>
 @endif
